@@ -9,10 +9,34 @@
           rgb(255,126,124),
           rgb(127,187,198));
         height: 100vh;
-}
+      }
+      .mountain1 {
+        background-color: rgb(28,28,28);
+        width: 600px;
+        height: 300px;
+      }
     </style>
   </head>
   <body>
-    <script></script>
+    <canvas class="mountain1">Error</canvas>
+    <script>
+      radians = (Math.PI/180)*degrees
+      function DrawMountain1() {
+        const mountaim1 = document.getElementById('mountain1');
+        if (mountaim1.getContext) {
+          const obj = mountaim1.getContext("2d");
+          obj.beginPath();
+          obj.moveTo(0, 300);
+          obj.lineTo(60, 240);
+          obj.arcTo(60, 240, 120, 240, 30);
+          obj.lineTo(270, 30);
+          obj.arcTo(270, 30, 330, 30, 30);
+          obj.lineTo(360, 60);
+          obj.arcTo(360, 60, 420, 60, 30);
+          obj.lineTo(600, 300);
+          obj.fill();
+        }
+      }
+    </script>
   </body>
 </html>
