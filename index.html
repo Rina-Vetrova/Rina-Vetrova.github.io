@@ -17,21 +17,31 @@
     </style>
   </head>
   <body>
-    <canvas id="mountain" width="600" height="300">Error</canvas>
+    <canvas id="mountain" width="1000" height="500">Error</canvas>
     <script>
       function drawMountain1() {
         var mountain = document.getElementById('mountain');
         if (mountain.getContext) {
           var obj = mountain.getContext("2d");
           obj.beginPath();
-          obj.moveTo(0, 300);
-          obj.lineTo(60, 240);
-          obj.quadraticCurveTo(90, 210, 120, 240);
-          obj.lineTo(270, 30);
-          obj.quadraticCurveTo(300, -10, 330, 30);
+          obj.moveTo(0, 500);
+          obj.lineTo(75, 400);
+          obj.quadraticCurveTo(100, 365, 110, 360);
+          obj.quadraticCurveTo(115, 365, 120, 370);
+          obj.lineTo(350, 75);
+          obj.quadraticCurveTo(375, 100, 385, 90);
+          obj.quadraticCurveTo(390, 140, 410, 125);
           obj.lineTo(360, 60);
           obj.quadraticCurveTo(390, 20, 420, 60);
-          obj.lineTo(600, 300);
+          obj.lineTo(500, 10);
+          obj.quadraticCurveTo(525, 20, 550, 50);
+          obj.lineTo(675, 225);
+          obj.quadraticCurveTo(710, 260, 710, 245);
+          obj.quadraticCurveTo(715, 210, 750, 225);
+          obj.lineTo(925, 425);
+          obj.quadraticCurveTo(950, 450, 950, 425);
+          obj.quadraticCurveTo(950, 415, 975, 440);
+          obj.lineTo(1000, 500);
           obj.closePath();
           obj.fill();
         }
