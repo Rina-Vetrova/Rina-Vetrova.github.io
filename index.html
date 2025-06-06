@@ -3,6 +3,7 @@
   <head>
     <title></title>
     <style>
+      body {
       html, body {
         background: linear-gradient(
           to top,
@@ -17,21 +18,21 @@
     </style>
   </head>
   <body>
-    <canvas id="mountain" width="900" height="450">Error</canvas>
+    <canvas id="mountain" width="600" height="300">Error</canvas>
     <script>
       function drawMountain1() {
         var mountain = document.getElementById('mountain');
         if (mountain.getContext) {
           var obj = mountain.getContext("2d");
           obj.beginPath();
-          obj.moveTo(0, 450);
-          obj.lineTo(135, 540);
-          obj.quadraticCurveTo(135, 315, 180, 360);
-          obj.lineTo(405, 45);
-          obj.quadraticCurveTo(450, -15, 495, 45);
-          obj.lineTo(585, 135);
-          obj.quadraticCurveTo(585, 30, 630, 90);
-          obj.lineTo(900, 450);
+          obj.moveTo(0, 300);
+          obj.lineTo(60, 240);
+          obj.quadraticCurveTo(90, 210, 120, 240);
+          obj.lineTo(270, 30);
+          obj.quadraticCurveTo(300, -10, 330, 30);
+          obj.lineTo(360, 60);
+          obj.quadraticCurveTo(390, 20, 420, 60);
+          obj.lineTo(600, 300);
           obj.closePath();
           obj.fill();
         }
