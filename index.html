@@ -22,7 +22,7 @@
     <canvas class="mountain1">Error</canvas>
     <script>
       function drawMountain1() {
-        const mountain = document.getElementById('mountain');
+        var mountain = document.getElementById('mountain');
         if (mountain.getContext) {
           var obj = mountain.getContext("2d");
           obj.beginPath();
