@@ -21,7 +21,7 @@
   <body>
     <canvas class="mountain1">Error</canvas>
     <script>
-      function DrawMountain1() {
+      function drawMountain1() {
         const mountaim1 = document.getElementById('mountain1');
         if (mountaim1.getContext) {
           var obj = mountaim1.getContext("2d");
@@ -37,7 +37,7 @@
           obj.fill();
         }
       }
-      DrawMountain1();
+      window.onload = drawMountain1;
     </script>
   </body>
 </html>
