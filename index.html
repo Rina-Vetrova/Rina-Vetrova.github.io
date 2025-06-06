@@ -11,7 +11,7 @@
         height: 100vh;
         z-index: 1;
       }
-      .mountain1 {
+      .mountain {
         width: 600px;
         height: 300px;
         z-index: 2;
@@ -22,9 +22,9 @@
     <canvas class="mountain1">Error</canvas>
     <script>
       function drawMountain1() {
-        const mountain1 = document.getElementById('mountain1');
-        if (mountain1.getContext) {
-          var obj = mountain1.getContext("2d");
+        const mountain = document.getElementById('mountain');
+        if (mountain.getContext) {
+          var obj = mountain.getContext("2d");
           obj.beginPath();
           obj.moveTo(0, 300);
           obj.lineTo(60, 240);
