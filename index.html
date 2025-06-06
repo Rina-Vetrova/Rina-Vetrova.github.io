@@ -26,11 +26,11 @@
           obj.beginPath();
           obj.moveTo(0, 300);
           obj.lineTo(60, 240);
-          obj.arcTo(60, 240, 120, 240, 30);
+          obj.quadraticCurveTo(120, 240, 90, 240);
           obj.lineTo(270, 30);
-          obj.arcTo(270, 30, 330, 30, 30);
+          obj.quadraticCurveTo(330, 30, 300, 0);
           obj.lineTo(360, 60);
-          obj.arcTo(360, 60, 420, 60, 30);
+          obj.quadraticCurveTo(420, 60, 390, 30);
           obj.lineTo(600, 300);
           obj.closePath();
           obj.fill();
