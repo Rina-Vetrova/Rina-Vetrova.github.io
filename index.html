@@ -11,86 +11,28 @@
         height: 100vh;
         z-index: 1;
       }
-        canvas {
-      border: 1px solid black;
-      margin-top: 10px;
-    }
     </style>
   </head>
   <body>
-  <canvas id="canvas" width="1500" height="700"></canvas>
+  <canvas id="canvas" width="100%" height="100%"></canvas>
     <script>
       const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const layer1 = canvas.getContext('2d');
+      
+      layer1.fillStyle = "black";
+      layer1.fillRect(0, 0, canwas.width, canwas.height);
+      
+      layer1.globalCompositeOperation = 'destination-out';
+      layer1.beginPath();
+      layer1.moveTo(50, 700);
+      layer1.quadraticCurveTo(65, 695, 80, 700);
+      layer1.quadraticCurveTo(100, 710, 120, 695);
+      layer1.quadraticCurveTo(140, 680, 170, 700);
+      layer1.quadraticCurveTo(195, 720, 245, 710);
+      layer1.quadraticCurveTo(295, 690, 270, 670);
+      layer1.closePath();
+      layer1.fill();
 
-    const points = [];
-    const spacing = 20;
-    const baseY = 150;
-
-    // Генерация неровных точек (с шумом)
-    for (let x = 0; x <= canvas.width; x += spacing) {
-      const y = baseY + (Math.random() - 0.5) * 50;
-      points.push({ x, y });
-    }
-
-    // Рисуем неровную линию (черная)
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
-    }
-    ctx.strokeStyle = 'black';
-    ctx.stroke();
-
-    // Catmull-Rom Spline -> сглаживание
-    function drawSmoothLine(points, tension = 0.5, numOfSegments = 16) {
-      const result = [];
-
-      for (let i = 0; i < points.length - 1; i++) {
-        const p0 = points[i - 1] || points[i];
-        const p1 = points[i];
-        const p2 = points[i + 1];
-        const p3 = points[i + 2] || p2;
-
-        for (let t = 0; t <= numOfSegments; t++) {
-          const tt = t / numOfSegments;
-
-          const tt2 = tt * tt;
-          const tt3 = tt2 * tt;
-
-          const x = 0.5 * (
-            (2 * p1.x) +
-            (-p0.x + p2.x) * tt +
-            (2*p0.x - 5*p1.x + 4*p2.x - p3.x) * tt2 +
-            (-p0.x + 3*p1.x - 3*p2.x + p3.x) * tt3
-          );
-
-          const y = 0.5 * (
-            (2 * p1.y) +
-            (-p0.y + p2.y) * tt +
-            (2*p0.y - 5*p1.y + 4*p2.y - p3.y) * tt2 +
-            (-p0.y + 3*p1.y - 3*p2.y + p3.y) * tt3
-          );
-
-          result.push({ x, y });
-        }
-      }
-
-      return result;
-    }
-
-    // Генерация сглаженных точек
-    const smoothPoints = drawSmoothLine(points);
-
-    // Рисуем сглаженную линию (красная)
-    ctx.beginPath();
-    ctx.moveTo(smoothPoints[0].x, smoothPoints[0].y);
-    for (let i = 1; i < smoothPoints.length; i++) {
-      ctx.lineTo(smoothPoints[i].x, smoothPoints[i].y);
-    }
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 2;
-    ctx.stroke();
     </script>
   </body>
 </html>
