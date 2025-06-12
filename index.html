@@ -11,38 +11,88 @@
         height: 100vh;
         z-index: 1;
       }
-      #mountain {
-        z-index: 2;
-      }
+        canvas {
+      border: 1px solid black;
+      margin-top: 10px;
+    }
     </style>
   </head>
   <body>
-    <canvas id="mountain" width="1000" height="500">Error</canvas>
+    <h3>1. Черная — неровная (шум)</h3>
+  <h3>2. Красная — сглаженная</h3>
+  <canvas id="canvas" width="800" height="300"></canvas>
     <script>
-      function drawMountain1() {
-        var mountain = document.getElementById('mountain');
-        if (mountain.getContext) {
-          var obj = mountain.getContext("2d");
-          obj.beginPath();
-          obj.moveTo(0, 500);
-          obj.lineTo(175, 250);
-          obj.quadraticCurveTo(200, 225, 225, 250);
-          obj.lineTo(236, 275);
-          obj.quadraticCurveTo(250, 300, 265, 275);
-          obj.lineTo(475, 36);
-          obj.quadraticCurveTo(500, 0, 525, 36);
-          obj.lineTo(613, 150);
-          obj.quadraticCurveTo(625, 175, 650, 150);
-          obj.quadraticCurveTo(675, 125, 688, 150);
-          obj.lineTo(813, 338);
-          obj.quadraticCurveTo(825, 350, 838, 338);
-          obj.quadraticCurveTo(850, 325, 863, 338);
-          obj.lineTo(1000, 500);
-          obj.closePath();
-          obj.fill();
+      const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const points = [];
+    const spacing = 20;
+    const baseY = 150;
+
+    // Генерация неровных точек (с шумом)
+    for (let x = 0; x <= canvas.width; x += spacing) {
+      const y = baseY + (Math.random() - 0.5) * 50;
+      points.push({ x, y });
+    }
+
+    // Рисуем неровную линию (черная)
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.strokeStyle = 'black';
+    ctx.stroke();
+
+    // Catmull-Rom Spline -> сглаживание
+    function drawSmoothLine(points, tension = 0.5, numOfSegments = 16) {
+      const result = [];
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i - 1] || points[i];
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const p3 = points[i + 2] || p2;
+
+        for (let t = 0; t <= numOfSegments; t++) {
+          const tt = t / numOfSegments;
+
+          const tt2 = tt * tt;
+          const tt3 = tt2 * tt;
+
+          const x = 0.5 * (
+            (2 * p1.x) +
+            (-p0.x + p2.x) * tt +
+            (2*p0.x - 5*p1.x + 4*p2.x - p3.x) * tt2 +
+            (-p0.x + 3*p1.x - 3*p2.x + p3.x) * tt3
+          );
+
+          const y = 0.5 * (
+            (2 * p1.y) +
+            (-p0.y + p2.y) * tt +
+            (2*p0.y - 5*p1.y + 4*p2.y - p3.y) * tt2 +
+            (-p0.y + 3*p1.y - 3*p2.y + p3.y) * tt3
+          );
+
+          result.push({ x, y });
         }
       }
-      window.onload = drawMountain1;
+
+      return result;
+    }
+
+    // Генерация сглаженных точек
+    const smoothPoints = drawSmoothLine(points);
+
+    // Рисуем сглаженную линию (красная)
+    ctx.beginPath();
+    ctx.moveTo(smoothPoints[0].x, smoothPoints[0].y);
+    for (let i = 1; i < smoothPoints.length; i++) {
+      ctx.lineTo(smoothPoints[i].x, smoothPoints[i].y);
+    }
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+    ctx.stroke();
     </script>
   </body>
 </html>
