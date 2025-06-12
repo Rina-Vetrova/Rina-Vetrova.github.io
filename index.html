@@ -11,20 +11,20 @@
         height: 100vh;
         margin: 0;
         overflow: hidden;
-        z-index: 1;
+        z-index: 0;
       }
-      #canvas {
+      .canvas {
         display: block;
       }
     </style>
   </head>
   <body>
-  <canvas id="canvas"></canvas>
+  <canvas id="canvas1" class = 'canvas' z-index = "1"></canvas>
     <script>
-      const canvas = document.getElementById('canvas');
-    const layer1 = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const canvas = document.getElementById('canvas1');
+    const layer1 = canvas1.getContext('2d');
+      canvas1.width = window.innerWidth;
+      canvas1.height = window.innerHeight;
       
       layer1.fillStyle = "black";
       layer1.fillRect(0, 0, canvas.width, canvas.height);
