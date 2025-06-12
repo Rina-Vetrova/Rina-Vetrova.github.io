@@ -9,15 +9,22 @@
           rgb(255,163,153),
           rgb(193,223,241));
         height: 100vh;
+        margin: 0;
+        overflow: hidden;
         z-index: 1;
+      }
+      #canvas {
+        display: block;
       }
     </style>
   </head>
   <body>
-  <canvas id="canvas" width="window.innerWidth" height="window.innerHeight"></canvas>
+  <canvas id="canvas"></canvas>
     <script>
       const canvas = document.getElementById('canvas');
     const layer1 = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
       
       layer1.fillStyle = "black";
       layer1.fillRect(0, 0, canvas.width, canvas.height);
