@@ -19,8 +19,68 @@
     </style>
   </head>
   <body>
-  <canvas id="canvas10" class = 'canvas' z-index = "10"></canvas>
+    <canvas id="canvas9" class = 'canvas' z-index = "9"></canvas>
+    <canvas id="canvas10" class = 'canvas' z-index = "10"></canvas>
     <script>
+      //Слой 9
+      const canvas9 = document.getElementById('canvas9');
+      const layer9 = canvas9.getContext('2d');
+      canvas9.width = window.innerWidth;
+      canvas9.height = window.innerHeight;
+      layer9.fillStyle = "red";
+      layer9.fillRect(0, 0, canvas9.width, canvas9.height);
+      layer9.globalCompositeOperation = 'destination-out';
+      layer9.beginPath();
+      layer9.moveTo(208, 546);
+      layer9.bezierCurveTo(200, 626, 282, 711, 375, 628);
+      layer9.quadraticCurveTo(385, 610, 407, 611);
+      layer9.lineTo(407, 568);
+      layer9.lineTo(432, 568);
+      layer9.lineTo(432, 604);
+      layer9.quadraticCurveTo(454, 582, 476, 579);
+      layer9.lineTo(476, 537);
+      layer9.lineTo(501, 537);
+      layer9.lineTo(501, 578);
+      layer9.quadraticCurveTo(517, 582, 528, 595);
+      layer9.lineTo(528, 577);
+      layer9.lineTo(553, 577);
+      layer9.lineTo(553, 600);
+      layer9.quadraticCurveTo(578, 610, 581, 636);
+      layer9.quadraticCurveTo(588, 663, 615, 660);
+      layer9.quadraticCurveTo(644, 654, 671, 686);
+      layer9.quadraticCurveTo(726, 741, 788, 729);
+      layer9.quadraticCurveTo(828, 708, 888, 730);
+      layer9.quadraticCurveTo(1040, 738, 1134, 703);
+      layer9.bezierCurveTo(1210, 684, 1246, 580, 1248, 533);
+      layer9.quadraticCurveTo(1274, 496, 1287, 510);
+      layer9.quadraticCurveTo(1303, 524, 1319, 506);
+      layer9.quadraticCurveTo(1397, 381, 1389, 251);
+      layer9.bezierCurveTo(1400, 194, 1353, 119, 1313, 153);
+      layer9.quadraticCurveTo(1276, 188, 1262, 142);
+      layer9.bezierCurveTo(1266, 86, 1223, 41, 1167, 54);
+      layer9.quadraticCurveTo(1076, 78, 1042, 39);
+      layer9.quadraticCurveTo(1017, 2, 946, 19);
+      layer9.quadraticCurveTo(873, 42, 824, 40);
+      layer9.quadraticCurveTo(769, 34, 736, 65);
+      layer9.quadraticCurveTo(694, 93, 684, 85);
+      layer9.quadraticCurveTo(671, 77, 658, 94);
+      layer9.quadraticCurveTo(641, 104, 626, 122);
+      layer9.quadraticCurveTo(611, 135, 600, 123);
+      layer9.quadraticCurveTo(561, 71, 512, 63);
+      layer9.quadraticCurveTo(461, 64, 441, 99);
+      layer9.bezierCurveTo(436, 113, 409, 138, 401, 111);
+      layer9.quadraticCurveTo(390, 93, 369, 102);
+      layer9.quadraticCurveTo(349, 112, 342, 97);
+      layer9.bezierCurveTo(317, 39, 178, 99, 209, 237);
+      layer9.quadraticCurveTo(217, 273, 236, 294);
+      layer9.quadraticCurveTo(248, 261, 246, 274);
+      layer9.quadraticCurveTo(246, 297, 240, 315);
+      layer9.quadraticCurveTo(237, 331, 249, 327);
+      layer9.quadraticCurveTo(267, 325, 264, 343);
+      layer9.bezierCurveTo(252, 394, 219, 431, 217, 497);
+      layer9.quadraticCurveTo(210, 523, 208, 546);
+      layer10.fill();
+      //Слой 10
       const canvas10 = document.getElementById('canvas10');
       const layer10 = canvas10.getContext('2d');
       canvas10.width = window.innerWidth;
@@ -44,9 +104,6 @@
       layer10.bezierCurveTo(289, 8, 125, 186, 193, 295);
       layer10.quadraticCurveTo(239, 370, 185, 465);
       layer10.fill();
-      
-      console.log(canvas10.clientHeight, canvas10.clientWidth);
-
     </script>
   </body>
 </html>
