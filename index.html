@@ -18,12 +18,13 @@
     </style>
   </head>
   <body>
-    <canvas id="canvas2" class = 'canvas' z-index = "2"></canvas>
+    <canvas id="canvas2" class = 'canvas'></canvas>
     <canvas id="canvas1" class = 'canvas' z-index = "1"></canvas>
     <script>
       //Слой 2
       const canvas2 = document.getElementById('canvas2');
       const layer2 = canvas2.getContext('2d');
+      canvas2.style.zIndex = '9';
       canvas2.width = window.innerWidth;
       canvas2.height = window.innerHeight;
       layer2.fillStyle = "orange";
@@ -71,7 +72,7 @@
       layer2.quadraticCurveTo(390, 93, 369, 102);
       layer2.quadraticCurveTo(349, 112, 342, 97);
       layer2.bezierCurveTo(317, 39, 178, 99, 209, 237);
-      layer2.quadraticCurveTo(217, 273, 236, 294);
+      layer2.quadraticCurveTo(217, 273, 236, 264);
       layer2.quadraticCurveTo(248, 261, 246, 274);
       layer2.quadraticCurveTo(246, 297, 240, 315);
       layer2.quadraticCurveTo(237, 331, 249, 327);
@@ -82,6 +83,7 @@
       //Слой 1
       const canvas1 = document.getElementById('canvas1');
       const layer1 = canvas1.getContext('2d');
+      canvas1.style.zIndex = '10';
       canvas1.width = window.innerWidth;
       canvas1.height = window.innerHeight;
       layer1.fillStyle = "red";
