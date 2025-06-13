@@ -22,35 +22,31 @@
   <canvas id="canvas10" class = 'canvas' z-index = "10"></canvas>
     <script>
       const canvas10 = document.getElementById('canvas10');
-    const layer1 = canvas10.getContext('2d');
+      const layer10 = canvas10.getContext('2d');
       canvas10.width = window.innerWidth;
       canvas10.height = window.innerHeight;
+      layer10.fillStyle = "red";
+      layer10.fillRect(0, 0, canvas10.width, canvas10.height);
+      layer10.globalCompositeOperation = 'destination-out';
+      layer10.beginPath();
+      layer10.moveTo(169, 584);
+      layer10.bezierCurveTo(125, 689, 264, 727, 341, 680);
+      layer10.bezierCurveTo(433, 604, 532, 612, 594, 677);
+      layer10.quadraticCurveTo(715, 763, 904, 753);
+      layer10.quadraticCurveTo(1024, 739, 1120, 743);
+      layer10.bezierCurveTo(1196, 756, 1268, 716, 1265, 650);
+      layer10.quadraticCurveTo(1290, 539, 1365, 487);
+      layer10.quadraticCurveTo(1465, 381, 1414, 244);
+      layer10.bezierCurveTo(1434, 117, 1344, 32, 1206, 31);
+      layer10.bezierCurveTo(1001, -35, 734, 2, 697, 61);
+      layer10.quadraticCurveTo(617, 111, 562, 61);
+      layer10.quadraticCurveTo(516, 7, 435, 53);
+      layer10.quadraticCurveTo(360, 87, 338, 60);
+      layer10.bezierCurveTo(289, 8, 125, 186, 193, 295);
+      layer10.quadraticCurveTo(239, 370, 185, 465);
+      layer10.quadraticCurveTo(159, 518, 169, 584);
+      layer10.fill();
       
-      layer1.fillStyle = "black";
-      layer1.fillRect(0, 0, canvas10.width, canvas10.height);
-      
-      layer1.globalCompositeOperation = 'destination-out';
-      layer1.beginPath();
-      layer1.moveTo(72, 651);
-      layer1.bezierCurveTo(70, 728, 118, 740, 179, 709);
-      layer1.quadraticCurveTo(308, 627, 412, 667);
-      layer1.quadraticCurveTo(467, 692, 533, 641);
-      layer1.quadraticCurveTo(626, 567, 774, 637);
-      layer1.quadraticCurveTo(981, 762, 1220, 725);
-      layer1.quadraticCurveTo(1330, 690, 1372, 682);
-      layer1.bezierCurveTo(1417, 684, 1473, 629, 1454, 524);
-      layer1.quadraticCurveTo(1419, 404, 1453, 298);
-      layer1.bezierCurveTo(1487, 221, 1458, 107, 1302, 96);
-      layer1.quadraticCurveTo(1158, 101, 1060, 56);
-      layer1.quadraticCurveTo(906, 12, 804, 70);
-      layer1.quadraticCurveTo(690, 103, 633, 78);
-      layer1.quadraticCurveTo(555, 30, 431, 53);
-      layer1.quadraticCurveTo(351, 80, 236, 55);
-      layer1.bezierCurveTo(118, 50, 31, 135, 53, 210);
-      layer1.quadraticCurveTo(81, 302, 41, 343);
-      layer1.quadraticCurveTo(-10, 412, 27, 510);
-      layer1.quadraticCurveTo(87, 591, 72, 651);
-      layer1.fill();
       console.log(canvas10.clientHeight, canvas10.clientWidth);
 
     </script>
