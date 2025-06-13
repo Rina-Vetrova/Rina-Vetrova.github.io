@@ -19,16 +19,103 @@
     </style>
   </head>
   <body>
+    <canvas id="canvas3" class = 'canvas'></canvas>
     <canvas id="canvas2" class = 'canvas'></canvas>
-    <canvas id="canvas1" class = 'canvas' z-index = "1"></canvas>
+    <canvas id="canvas1" class = 'canvas'></canvas>
     <script>
+      //Слой 3
+      const canvas3 = document.getElementById('canvas3');
+      const layer3 = canvas3.getContext('2d');
+      canvas3.style.zIndex = '8';
+      canvas3.width = window.innerWidth;
+      canvas3.height = window.innerHeight;
+      layer3.fillStyle = "4d4d4d";
+      layer3.fillRect(0, 0, canvas3.width, canvas3.height);
+      layer3.globalCompositeOperation = 'destination-out';
+      layer3.beginPath();
+      layer3.moveTo(266, 596);
+      layer3.bezierCurveTo(240, 616, 295, 662, 311, 631);
+      layer3.quadraticCurveTo(318, 614, 332, 619);
+      layer3.quadraticCurveTo(357, 619, 367, 600);
+      layer3.lineTo(367, 558);
+      layer3.lineTo(392, 558);
+      layer3.lineTo(392, 594);
+      layer3.lineTo(402, 594);
+      layer3.lineTo(402, 528);
+      layer3.lineTo(427, 528);
+      layer3.lineTo(427, 584);
+      layer3.lineTo(450, 581);
+      layer3.lineTo(450, 501);
+      layer3.lineTo(475, 501);
+      layer3.lineTo(475, 572);
+      layer3.lineTo(513, 573);
+      layer3.lineTo(513, 510);
+      layer3.lineTo(538, 510);
+      layer3.lineTo(538, 565);
+      layer3.quadraticCurveTo(575, 591, 589, 627);
+      layer3.quadraticCurveTo(603, 649, 633, 650);
+      layer3.quadraticCurveTo(669, 652, 692, 683);
+      layer3.quadraticCurveTo(711, 703, 725, 705);
+      layer3.quadraticCurveTo(742, 706, 752, 715);
+      layer3.quadraticCurveTo(770, 726, 789, 713);
+      layer3.quadraticCurveTo(814, 692, 843, 708);
+      layer3.bezierCurveTo(877, 733, 1000, 730, 1044, 713);
+      layer3.quadraticCurveTo(1055, 708, 1057, 702);
+      layer3.quadraticCurveTo(1063, 693, 1074, 691);
+      layer3.bezierCurveTo(1131, 708, 1229, 610, 1245, 510);
+      layer3.quadraticCurveTo(1259, 475, 1282, 477);
+      layer3.quadraticCurveTo(1300, 473, 1302, 458);
+      layer3.quadraticCurveTo(1304, 435, 1317, 433);
+      layer3.bezierCurveTo(1362, 429, 1380, 275, 1355, 181);
+      layer3.quadraticCurveTo(1330, 156, 1314, 173);
+      layer3.quadraticCurveTo(1304, 193, 1294, 186);
+      layer3.quadraticCurveTo(1289, 179, 1271, 193);
+      layer3.quadraticCurveTo(1259, 201, 1256, 191);
+      layer3.quadraticCurveTo(1251, 135, 1235, 88);
+      layer3.quadraticCurveTo(1203, 58, 1173, 66);
+      layer3.quadraticCurveTo(1137, 81, 1110, 75);
+      layer3.quadraticCurveTo(1096, 70, 1085, 79);
+      layer3.quadraticCurveTo(1077, 85, 1072, 77);
+      layer3.quadraticCurveTo(1065, 67, 1057, 73);
+      layer3.quadraticCurveTo(1052, 81, 1050, 90);
+      layer3.quadraticCurveTo(1046, 94, 1043, 90);
+      layer3.quadraticCurveTo(1042, 68, 1038, 51);
+      layer3.quadraticCurveTo(1025, 21, 989, 23);
+      layer3.quadraticCurveTo(955, 26, 922, 34);
+      layer3.quadraticCurveTo(903, 36, 888, 54);
+      layer3.quadraticCurveTo(876, 65, 867, 55);
+      layer3.bezierCurveTo(825, 36, 686, 64, 705, 126);
+      layer3.quadraticCurveTo(699, 132, 695, 126);
+      layer3.bezierCurveTo(694, 58, 631, 110, 614, 154);
+      layer3.quadraticCurveTo(607, 160, 603, 154);
+      layer3.quadraticCurveTo(600, 116, 582, 124);
+      layer3.quadraticCurveTo(563, 126, 553, 99);
+      layer3.quadraticCurveTo(543, 83, 529, 89);
+      layer3.quadraticCurveTo(522, 95, 516, 88);
+      layer3.bezierCurveTo(484, 76, 419, 132, 395, 177);
+      layer3.quadraticCurveTo(388, 183, 386, 176);
+      layer3.bezierCurveTo(399, 143, 390, 87, 353, 122);
+      layer3.quadraticCurveTo(341, 129, 339, 117);
+      layer3.bezierCurveTo(335, 63, 283, 67, 253, 102);
+      layer3.quadraticCurveTo(215, 131, 218, 232);
+      layer3.quadraticCurveTo(225, 255, 250, 244);
+      layer3.quadraticCurveTo(267, 241, 265, 253);
+      layer3.bezierCurveTo(250, 282, 254, 330, 314, 263);
+      layer3.quadraticCurveTo(329, 259, 328, 274);
+      layer3.quadraticCurveTo(301, 329, 266, 375);
+      layer3.bezierCurveTo(256, 395, 251, 429, 271, 417);
+      layer3.quadraticCurveTo(282, 418, 280, 428);
+      layer3.quadraticCurveTo(256, 478, 239, 522);
+      layer3.quadraticCurveTo(237, 547, 262, 557);
+      layer3.quadraticCurveTo(285, 570, 266, 596);
+      layer3.fill();
       //Слой 2
       const canvas2 = document.getElementById('canvas2');
       const layer2 = canvas2.getContext('2d');
       canvas2.style.zIndex = '9';
       canvas2.width = window.innerWidth;
       canvas2.height = window.innerHeight;
-      layer2.fillStyle = "orange";
+      layer2.fillStyle = "2b2b2b";
       layer2.fillRect(0, 0, canvas2.width, canvas2.height);
       layer2.globalCompositeOperation = 'destination-out';
       layer2.beginPath();
@@ -87,7 +174,7 @@
       canvas1.style.zIndex = '10';
       canvas1.width = window.innerWidth;
       canvas1.height = window.innerHeight;
-      layer1.fillStyle = "red";
+      layer1.fillStyle = "black";
       layer1.fillRect(0, 0, canvas1.width, canvas1.height);
       layer1.globalCompositeOperation = 'destination-out';
       layer1.beginPath();
