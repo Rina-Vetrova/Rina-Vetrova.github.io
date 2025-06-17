@@ -3,43 +3,226 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    body { display: flex; height: 100vh; margin: 0; }
-    #tools { width: 220px; padding: 10px; background: #f0f0f0; box-sizing: border-box; }
-    #canvas { flex: 1; border: 1px solid #ccc; }
-    #log { width: 260px; padding: 10px; background: #fafafa; box-sizing: border-box; font-family: monospace; white-space: pre; overflow: auto; }
-    button { width: 100%; margin: 5px 0; }
-    textarea { width: 100%; height: 100px; }
+    body { 
+      margin: 0; 
+      font-family: Arial, sans-serif; 
+      overflow: hidden;
+      background: #f5f5f5;
+    }
+    
+    #canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: white;
+      cursor: crosshair;
+    }
+    
+    #toolsPanel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 250px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      backdrop-filter: blur(10px);
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    
+    #toolsPanel.hidden {
+      transform: translateX(270px);
+      opacity: 0;
+    }
+    
+    #toolsHeader {
+      padding: 15px;
+      background: #333;
+      color: white;
+      border-radius: 10px 10px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    #toolsContent {
+      padding: 15px;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    
+    #toggleBtn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      z-index: 1000;
+      transition: all 0.3s ease;
+    }
+    
+    #toggleBtn:hover {
+      background: #555;
+      transform: scale(1.1);
+    }
+    
+    #toggleBtn.panelOpen {
+      right: 290px;
+    }
+    
+    button {
+      width: 100%;
+      margin: 5px 0;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #0056b3;
+    }
+    
+    button.active {
+      background: #28a745;
+    }
+    
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin: 5px 0;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+    
+    label {
+      display: block;
+      margin: 10px 0 5px 0;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    
+    hr {
+      margin: 15px 0;
+      border: none;
+      border-top: 1px solid #eee;
+    }
+    
+    #log {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 11px;
+      white-space: pre;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #e9ecef;
+    }
+    
+    .control-point {
+      cursor: grab;
+      transition: all 0.2s ease;
+    }
+    
+    .control-point:hover {
+      r: 7;
+      fill: #dc3545;
+    }
+    
+    .control-point:active {
+      cursor: grabbing;
+    }
+    
+    .helper-line {
+      stroke: #999;
+      stroke-width: 1;
+      stroke-dasharray: 3,3;
+      opacity: 0.6;
+    }
+    
+    #modeSelector {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+    
+    #modeSelector button {
+      flex: 1;
+      font-size: 12px;
+      padding: 8px 4px;
+    }
   </style>
 </head>
 <body>
 
-  <div id="tools">
-    <button id="addMove">Add Move (M)</button>
-    <button id="addH">Add H</button>
-    <button id="addV">Add V</button>
-    <button id="addLine">Add L</button>
-    <button id="addQuad">Add Q</button>
-    <button id="addCubic">Add C</button>
-    <button id="insertImage">Insert Image</button>
-    <hr>
-    <label>Paste segments:<br>
+  <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f0f0f0" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#grid)" opacity="0.5"/>
+    <image id="bgImage" x="0" y="0" width="0" height="0" href="" preserveAspectRatio="xMidYMid slice"/>
+    <g id="helperLines"></g>
+    <path id="path" fill="none" stroke="#333" stroke-width="3"/>
+    <g id="controlPoints"></g>
+  </svg>
+
+  <button id="toggleBtn">☰</button>
+
+  <div id="toolsPanel" class="hidden">
+    <div id="toolsHeader">
+      <span>Инструменты</span>
+      <span style="cursor: pointer;" onclick="togglePanel()">×</span>
+    </div>
+    <div id="toolsContent">
+      <div id="modeSelector">
+        <button id="addMove" class="active">M</button>
+        <button id="addH">H</button>
+        <button id="addV">V</button>
+        <button id="addLine">L</button>
+        <button id="addQuad">Q</button>
+        <button id="addCubic">C</button>
+      </div>
+      
+      <button id="insertImage">📷 Загрузить фон</button>
+      <button id="clearPath">🗑️ Очистить</button>
+      
+      <hr>
+      
+      <label>Вставить сегменты:</label>
       <textarea id="inputSeg" placeholder="M 100 100
 H 200
 V 150
 L 250 200
 Q 300 150, 350 200
 C 360 180, 400 100, 450 150"></textarea>
-    </label>
-    <button id="loadSeg">Load from Text</button>
+      <button id="loadSeg">Загрузить из текста</button>
+      
+      <hr>
+      
+      <label>SVG код:</label>
+      <div id="log"></div>
+    </div>
   </div>
-
-  <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
-    <defs></defs>
-    <image id="bgImage" x="0" y="0" width="0" height="0" href="" preserveAspectRatio="xMidYMid slice"/>
-    <path id="path" fill="none" stroke="#333" stroke-width="2"/>
-  </svg>
-
-  <div id="log"></div>
 
 <script>
 (() => {
@@ -47,69 +230,152 @@ C 360 180, 400 100, 450 150"></textarea>
   const pathEl = document.getElementById('path');
   const logEl = document.getElementById('log');
   const bgImage = document.getElementById('bgImage');
+  const controlPointsGroup = document.getElementById('controlPoints');
+  const helperLinesGroup = document.getElementById('helperLines');
+  const toolsPanel = document.getElementById('toolsPanel');
+  const toggleBtn = document.getElementById('toggleBtn');
 
   let segments = [];
+  let currentMode = 'M';
+  let isDrawing = false;
 
-  function createCircle(pt, onDrag) {
+  // Переключение панели инструментов
+  window.togglePanel = function() {
+    const isHidden = toolsPanel.classList.contains('hidden');
+    if (isHidden) {
+      toolsPanel.classList.remove('hidden');
+      toggleBtn.classList.add('panelOpen');
+      toggleBtn.textContent = '×';
+    } else {
+      toolsPanel.classList.add('hidden');
+      toggleBtn.classList.remove('panelOpen');
+      toggleBtn.textContent = '☰';
+    }
+  };
+
+  toggleBtn.onclick = togglePanel;
+
+  // Обновление размеров canvas
+  function updateCanvasSize() {
+    svg.setAttribute('width', window.innerWidth);
+    svg.setAttribute('height', window.innerHeight);
+  }
+  
+  updateCanvasSize();
+  window.addEventListener('resize', updateCanvasSize);
+
+  function createControlPoint(pt, type = 'main') {
     const c = document.createElementNS(svg.namespaceURI, 'circle');
     c.setAttribute('cx', pt.x);
     c.setAttribute('cy', pt.y);
     c.setAttribute('r', 5);
-    c.setAttribute('fill', '#e74c3c');
-    svg.appendChild(c);
-    let offset = {};
+    c.setAttribute('fill', type === 'control' ? '#17a2b8' : '#e74c3c');
+    c.setAttribute('class', 'control-point');
+    controlPointsGroup.appendChild(c);
+    
+    let isDragging = false;
+    let startX, startY;
+    
     c.addEventListener('mousedown', e => {
       e.preventDefault();
-      offset.x = pt.x - e.offsetX;
-      offset.y = pt.y - e.offsetY;
-      window.addEventListener('mousemove', onmove);
-      window.addEventListener('mouseup', onup);
+      e.stopPropagation();
+      isDragging = true;
+      startX = e.clientX - pt.x;
+      startY = e.clientY - pt.y;
+      
+      const onMouseMove = e => {
+        if (!isDragging) return;
+        pt.x = e.clientX - startX;
+        pt.y = e.clientY - startY;
+        c.setAttribute('cx', pt.x);
+        c.setAttribute('cy', pt.y);
+        redraw();
+      };
+      
+      const onMouseUp = () => {
+        isDragging = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      };
+      
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
     });
-    function onmove(e) {
-      pt.x = e.offsetX + offset.x;
-      pt.y = e.offsetY + offset.y;
-      c.setAttribute('cx', pt.x);
-      c.setAttribute('cy', pt.y);
-      redraw();
-    }
-    function onup() {
-      window.removeEventListener('mousemove', onmove);
-      window.removeEventListener('mouseup', onup);
-    }
+    
     return c;
+  }
+
+  function createHelperLine(pt1, pt2) {
+    const line = document.createElementNS(svg.namespaceURI, 'line');
+    line.setAttribute('x1', pt1.x);
+    line.setAttribute('y1', pt1.y);
+    line.setAttribute('x2', pt2.x);
+    line.setAttribute('y2', pt2.y);
+    line.setAttribute('class', 'helper-line');
+    helperLinesGroup.appendChild(line);
+    return line;
+  }
+
+  function clearControlPoints() {
+    controlPointsGroup.innerHTML = '';
+    helperLinesGroup.innerHTML = '';
   }
 
   function redraw() {
     let d = '';
-    segments.forEach((s,i) => {
+    clearControlPoints();
+    
+    segments.forEach((s, i) => {
       const pts = s.pts;
       switch(s.cmd) {
         case 'M':
-          pts.forEach(pt => d += `M${pt.x} ${pt.y} `);
+          pts.forEach(pt => {
+            d += `M${pt.x} ${pt.y} `;
+            createControlPoint(pt);
+          });
           break;
         case 'H':
-          d += H${pts[1].x} ;
+          d += `H${pts[1].x} `;
+          createControlPoint(pts[0]);
+          createControlPoint(pts[1]);
           break;
         case 'V':
-          d += V${pts[1].y} ;
+          d += `V${pts[1].y} `;
+          createControlPoint(pts[0]);
+          createControlPoint(pts[1]);
           break;
         case 'L': {
           const dx = pts[1].x - pts[0].x, dy = pts[1].y - pts[0].y;
-          if (dy===0) d += H${pts[1].x} ;
-          else if (dx===0) d += V${pts[1].y} ;
-          else d += L${pts[1].x} ${pts[1].y} ;
+          if (dy === 0) d += `H${pts[1].x} `;
+          else if (dx === 0) d += `V${pts[1].y} `;
+          else d += `L${pts[1].x} ${pts[1].y} `;
+          
+          createControlPoint(pts[0]);
+          createControlPoint(pts[1]);
         } break;
         case 'Q':
-          d += Q${pts[1].x} ${pts[1].y}, ${pts[2].x} ${pts[2].y} ;
+          d += `Q${pts[1].x} ${pts[1].y}, ${pts[2].x} ${pts[2].y} `;
+          createControlPoint(pts[0]);
+          createControlPoint(pts[1], 'control');
+          createControlPoint(pts[2]);
+          createHelperLine(pts[0], pts[1]);
+          createHelperLine(pts[1], pts[2]);
           break;
         case 'C':
-          d += C${pts[1].x} ${pts[1].y}, ${pts[2].x} ${pts[2].y}, ${pts[3].x} ${pts[3].y} ;
+          d += `C${pts[1].x} ${pts[1].y}, ${pts[2].x} ${pts[2].y}, ${pts[3].x} ${pts[3].y} `;
+          createControlPoint(pts[0]);
+          createControlPoint(pts[1], 'control');
+          createControlPoint(pts[2], 'control');
+          createControlPoint(pts[3]);
+          createHelperLine(pts[0], pts[1]);
+          createHelperLine(pts[2], pts[3]);
           break;
       }
     });
+    
     pathEl.setAttribute('d', d.trim());
 
-    // Лог
+    // Обновление лога
     let txt = '';
     segments.forEach(s => {
       switch(s.cmd) {
@@ -117,81 +383,116 @@ C 360 180, 400 100, 450 150"></textarea>
           s.pts.forEach(pt => txt += `M ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}\n`);
           break;
         case 'H':
-          txt += H ${s.pts[1].x.toFixed(1)}\n; break;
+          txt += `H ${s.pts[1].x.toFixed(1)}\n`; break;
         case 'V':
-          txt += V ${s.pts[1].y.toFixed(1)}\n; break;
+          txt += `V ${s.pts[1].y.toFixed(1)}\n`; break;
         case 'L':
-          txt += L ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}\n; break;
+          txt += `L ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}\n`; break;
         case 'Q':
-          txt += Q ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}\n; break;
+          txt += `Q ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}\n`; break;
         case 'C':
-          txt += C ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}, ${s.pts[3].x.toFixed(1)} ${s.pts[3].y.toFixed(1)}\n; break;
+          txt += `C ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}, ${s.pts[3].x.toFixed(1)} ${s.pts[3].y.toFixed(1)}\n`; break;
       }
     });
     logEl.textContent = txt;
   }
 
-  function addCmd(cmd) {
-    const last = segments.length ? segments[segments.length-1].pts.slice(-1)[0] : {x:100,y:100};
+  function addPoint(x, y) {
+    const last = segments.length ? segments[segments.length-1].pts.slice(-1)[0] : null;
     let pts = [];
-    switch(cmd) {
+    
+    switch(currentMode) {
       case 'M':
-        pts = [{x: last.x, y: last.y}];
+        pts = [{x, y}];
         break;
       case 'H':
-        pts = [{x: last.x, y: last.y}, {x: last.x + 100, y: last.y}];
+        if (!last) return;
+        pts = [{x: last.x, y: last.y}, {x, y: last.y}];
         break;
       case 'V':
-        pts = [{x: last.x, y: last.y}, {x: last.x, y: last.y + 100}];
+        if (!last) return;
+        pts = [{x: last.x, y: last.y}, {x: last.x, y}];
         break;
       case 'L':
-        pts = [{x: last.x, y: last.y}, {x: last.x + 100, y: last.y + 50}];
+        if (!last) return;
+        pts = [{x: last.x, y: last.y}, {x, y}];
         break;
       case 'Q':
+        if (!last) return;
         pts = [
-          {x:last.x, y:last.y},
-          {x:last.x + 50, y:last.y - 50},
-          {x:last.x +100, y:last.y}
+          {x: last.x, y: last.y},
+          {x: (last.x + x) / 2, y: (last.y + y) / 2 - 50},
+          {x, y}
         ];
         break;
       case 'C':
+        if (!last) return;
+        const dx = x - last.x;
+        const dy = y - last.y;
         pts = [
-          {x:last.x, y:last.y},
-          {x:last.x +30, y:last.y -50},
-          {x:last.x +70, y:last.y +50},
-          {x:last.x +100, y:last.y}
+          {x: last.x, y: last.y},
+          {x: last.x + dx * 0.3, y: last.y + dy * 0.3 - 30},
+          {x: last.x + dx * 0.7, y: last.y + dy * 0.7 + 30},
+          {x, y}
         ];
         break;
     }
-    const seg = {cmd, pts, circles: []};
-    pts.forEach(pt => seg.circles.push(createCircle(pt, redraw)));
-    segments.push(seg);
-    redraw();
+    
+    if (pts.length) {
+      segments.push({cmd: currentMode, pts});
+      redraw();
+    }
   }
 
-  document.getElementById('addMove').onclick  = ()=>addCmd('M');
-  document.getElementById('addH').onclick     = ()=>addCmd('H');
-  document.getElementById('addV').onclick     = ()=>addCmd('V');
-  document.getElementById('addLine').onclick  = ()=>addCmd('L');
-  document.getElementById('addQuad').onclick  = ()=>addCmd('Q');
-  document.getElementById('addCubic').onclick = ()=>addCmd('C');
+  // Обработка кликов по canvas
+  svg.addEventListener('click', e => {
+    if (e.target === svg || e.target.tagName === 'rect') {
+      const rect = svg.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      addPoint(x, y);
+    }
+  });
 
+  // Выбор режима
+  function setMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('#modeSelector button').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.getElementById('add' + mode).classList.add('active');
+  }
+
+  document.getElementById('addMove').onclick = () => setMode('M');
+  document.getElementById('addH').onclick = () => setMode('H');
+  document.getElementById('addV').onclick = () => setMode('V');
+  document.getElementById('addLine').onclick = () => setMode('L');
+  document.getElementById('addQuad').onclick = () => setMode('Q');
+  document.getElementById('addCubic').onclick = () => setMode('C');
+
+  // Очистка пути
+  document.getElementById('clearPath').onclick = () => {
+    segments = [];
+    redraw();
+  };
+
+  // Загрузка из текста
   document.getElementById('loadSeg').onclick = () => {
-    // очистить старое
-    segments.forEach(s=>s.circles.forEach(c=>svg.removeChild(c)));
     segments = [];
     const lines = document.getElementById('inputSeg').value.trim().split(/[\r\n]+/);
-    let currentPos = {x:0,y:0};
-    lines.forEach((ln,i) => {
+    let currentPos = {x: 0, y: 0};
+    
+    lines.forEach(ln => {
       const m = ln.trim().match(/^([MHVLQC])\s*(.*)$/i);
       if (!m) return;
       const cmd = m[1].toUpperCase();
-      const nums = m[2].replace(/,/g,' ').trim().split(/\s+/).map(Number);
+      const nums = m[2].replace(/,/g, ' ').trim().split(/\s+/).map(Number);
       let pts = [];
+      
       switch(cmd) {
         case 'M':
           pts = [{x: nums[0], y: nums[1]}];
-          currentPos = {x:nums[0], y:nums[1]};
+          currentPos = {x: nums[0], y: nums[1]};
           break;
         case 'H':
           pts = [{...currentPos}, {x: nums[0], y: currentPos.y}];
@@ -214,26 +515,28 @@ C 360 180, 400 100, 450 150"></textarea>
           currentPos = {x: nums[4], y: nums[5]};
           break;
       }
+      
       if (pts.length) {
-        const seg = {cmd, pts, circles: []};
-        pts.forEach(pt => seg.circles.push(createCircle(pt, redraw)));
-        segments.push(seg);
+        segments.push({cmd, pts});
       }
     });
     redraw();
   };
 
+  // Загрузка фонового изображения
   document.getElementById('insertImage').onclick = () => {
     const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept='image/*';
+    inp.type = 'file';
+    inp.accept = 'image/*';
     inp.onchange = e => {
       const file = e.target.files[0];
+      if (!file) return;
+      
       const reader = new FileReader();
       reader.onload = ev => {
         bgImage.setAttribute('href', ev.target.result);
         const img = new Image();
-        img.onload = ()=> {
-          svg.setAttribute('viewBox', `0 0 ${img.width} ${img.height}`);
+        img.onload = () => {
           bgImage.setAttribute('width', img.width);
           bgImage.setAttribute('height', img.height);
         };
@@ -243,6 +546,26 @@ C 360 180, 400 100, 450 150"></textarea>
     };
     inp.click();
   };
+
+  // Горячие клавиши
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'TEXTAREA') return;
+    
+    switch(e.key.toLowerCase()) {
+      case 'm': setMode('M'); break;
+      case 'h': setMode('H'); break;
+      case 'v': setMode('V'); break;
+      case 'l': setMode('L'); break;
+      case 'q': setMode('Q'); break;
+      case 'c': setMode('C'); break;
+      case ' ': e.preventDefault(); togglePanel(); break;
+      case 'escape': 
+        toolsPanel.classList.add('hidden');
+        toggleBtn.classList.remove('panelOpen');
+        toggleBtn.textContent = '☰';
+        break;
+    }
+  });
 
   redraw();
 })();
