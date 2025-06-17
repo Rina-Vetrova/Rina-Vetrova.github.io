@@ -48,7 +48,7 @@ C 360 180, 400 100, 450 150"></textarea>
   const logEl = document.getElementById('log');
   const bgImage = document.getElementById('bgImage');
 
-  let segments = []; // {cmd: 'M'|'H'|'V'|'L'|'Q'|'C', pts: [{x,y},...], circles: [...]}
+  let segments = [];
 
   function createCircle(pt, onDrag) {
     const c = document.createElementNS(svg.namespaceURI, 'circle');
@@ -125,8 +125,7 @@ C 360 180, 400 100, 450 150"></textarea>
         case 'Q':
           txt += Q ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}\n; break;
         case 'C':
-          txt += C ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.
-toFixed(1)} ${s.pts[2].y.toFixed(1)}, ${s.pts[3].x.toFixed(1)} ${s.pts[3].y.toFixed(1)}\n; break;
+          txt += C ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}, ${s.pts[3].x.toFixed(1)} ${s.pts[3].y.toFixed(1)}\n; break;
       }
     });
     logEl.textContent = txt;
