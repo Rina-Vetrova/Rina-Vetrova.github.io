@@ -208,9 +208,6 @@
         (() => {
             // Получение элементов DOM
             const canvas = document.getElementById('canvas');
-Markup
-
-
             const toolsPanel = document.getElementById('toolsPanel');
             const toggleBtn = document.getElementById('toggleBtn');
             const modeButtons = document.querySelectorAll('.mode-button');
@@ -242,18 +239,17 @@ Markup
             svg.appendChild(pathEl);
 
             let controlPointsGroup = document.createElementNS(svgNS, "g");
-            controlPoints
-Group.setAttribute('id', 'control-points');
+            controlPointsGroup.setAttribute('id', 'control-points');
             svg.appendChild(controlPointsGroup);
 
             let helperLinesGroup = document.createElementNS(svgNS, "g");
             helperLinesGroup.setAttribute('id', 'helper-lines');
             svg.appendChild(helperLinesGroup);
 
-           /* Создаем и добавляем bgImage в SVG
+           // Создаем и добавляем bgImage в SVG
             let bgImage = document.createElementNS(svgNS, "image");
             bgImage.setAttribute('id', 'bgImage');
-            svg.appendChild(bgImage);*/
+            svg.appendChild(bgImage);
 
             function createBgImage(){
                 bgImage = document.createElementNS(svgNS, "image");
@@ -315,8 +311,7 @@ Group.setAttribute('id', 'control-points');
                     'M': () => [{x, y}],
                     'L': () => last ? [{x: last.x, y: last.y}, {x, y}] : null,
                     'Q': () => last ? [
-                        {x: last.x, y:
-last.y},
+                        {x: last.x, y: last.y},
                         {x: (last.x + x) / 2, y: (last.y + y) / 2 - 50},
                         {x, y}
                     ] : null,
@@ -413,8 +408,7 @@ last.y},
 
             // Перетаскивание панели инструментов (только за заголовок)
             toolsPanel.addEventListener('mousedown', (e) => {
-                if (e.target === toolsPanel.querySelector('#toolsHeader')) { // Проверя
-ем, что кликнули именно на заголовок
+                if (e.target === toolsPanel.querySelector('#toolsHeader')) { // Проверяем, что кликнули именно на заголовок
                     isDraggingPanel = true;
                     panelOffsetX = e.clientX - toolsPanel.offsetLeft;
                     panelOffsetY = e.clientY - toolsPanel.offsetTop;
@@ -498,8 +492,7 @@ last.y},
             if (isControllingBackground && bgImage) {
                 isDraggingBg = true;
                 startXBg = e.clientX - parseFloat(bgImage.getAttribute('x') || 0);
-                startYBg = e.c
-lientY - parseFloat(bgImage.getAttribute('y') || 0);
+                startYBg = e.clientY - parseFloat(bgImage.getAttribute('y') || 0);
                 canvas.style.cursor = 'grabbing'; // Меняем курсор
             }
         });
@@ -554,7 +547,7 @@ lientY - parseFloat(bgImage.getAttribute('y') || 0);
 
             // Инициализация: выбор режима M и начальная отрисовка
             document.querySelector('[data-mode="M"]').classList.add('active');
-            //addPoint(50, 50); // Начальная точка для примера
+            addPoint(50, 50); // Начальная точка для примера
         })();
 
     </script>
