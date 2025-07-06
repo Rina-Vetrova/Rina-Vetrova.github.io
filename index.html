@@ -4,188 +4,107 @@
   <meta charset="UTF-8">
   <title>SVG Path Editor</title>
   <style>
-    body { 
-      margin: 0; 
-      font-family: Arial, sans-serif; 
-      overflow: hidden;
-      background: #f5f5f5;
-    }
-
+    body { margin: 0; font-family: Arial, sans-serif; overflow: hidden; background: #f5f5f5; }
     #canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: white;
-      cursor: crosshair;
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: white; cursor: crosshair;
       border: 1px solid #ccc;
     }
-
     #toolsPanel {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: 250px;
+      position: fixed; top: 20px; right: 20px; width: 250px;
       background: rgba(255, 255, 255, 0.95);
-      border-radius: 10px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
       backdrop-filter: blur(10px);
       transition: transform 0.3s ease, opacity 0.3s ease;
       z-index: 1000;
     }
-
-    #toolsPanel.hidden {
-      transform: translateX(270px);
-      opacity: 0;
-    }
-
+    #toolsPanel.hidden { transform: translateX(270px); opacity: 0; }
     #toolsHeader {
-      padding: 15px;
-      background: #333;
-      color: white;
+      padding: 15px; background: #333; color: white;
       border-radius: 10px 10px 0 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: move;
+      display: flex; justify-content: space-between;
+      align-items: center; cursor: move;
     }
-
     #toolsContent {
       padding: 15px;
-      max-height: 70vh;
-      overflow-y: auto;
+      max-height: 70vh; overflow-y: auto;
     }
-
     #toggleBtn {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: 50px;
-      height: 50px;
-      background: #333;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      font-size: 20px;
-      cursor: pointer;
+      position: fixed; top: 20px; right: 20px;
+      width: 50px; height: 50px;
+      background: #333; color: white;
+      border: none; border-radius: 50%;
+      font-size: 20px; cursor: pointer;
       box-shadow: 0 2px 10px rgba(0,0,0,0.2);
       z-index: 1100;
       transition: all 0.3s ease;
     }
-
-    #toggleBtn:hover {
-      background: #555;
-      transform: scale(1.1);
-    }
-
-    #toggleBtn.panelOpen {
-      right: 290px;
-    }
+    #toggleBtn:hover { background: #555; transform: scale(1.1); }
+    #toggleBtn.panelOpen { right: 290px; }
 
     button {
-      width: 100%;
-      margin: 5px 0;
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
-      background: #007bff;
-      color: white;
-      cursor: pointer;
-      font-size: 14px;
+      width: 100%; margin: 5px 0; padding: 10px;
+      border: none; border-radius: 5px;
+      background: #007bff; color: white;
+      cursor: pointer; font-size: 14px;
       transition: background 0.2s;
     }
-
-    button:hover {
-      background: #0056b3;
-    }
-
-    button.active {
-      background: #28a745;
-    }
+    button:hover { background: #0056b3; }
+    button.active { background: #28a745; }
 
     textarea {
-      width: 100%;
-      height: 100px;
-      margin: 5px 0;
-      padding: 8px;
+      width: 100%; height: 100px;
+      margin: 5px 0; padding: 8px;
       border: 1px solid #ddd;
       border-radius: 5px;
-      font-family: monospace;
-      font-size: 12px;
+      font-family: monospace; font-size: 12px;
       resize: vertical;
     }
 
     label {
-      display: block;
-      margin: 10px 0 5px 0;
-      font-weight: bold;
-      font-size: 14px;
+      display: block; margin: 10px 0 5px 0;
+      font-weight: bold; font-size: 14px;
     }
 
     hr {
-      margin: 15px 0;
-      border: none;
+      margin: 15px 0; border: none;
       border-top: 1px solid #eee;
     }
 
     #log {
       background: #f8f9fa;
-      padding: 10px;
-      border-radius: 5px;
-      font-family: monospace;
-      font-size: 11px;
+      padding: 10px; border-radius: 5px;
+      font-family: monospace; font-size: 11px;
       white-space: pre;
-      max-height: 200px;
-      overflow-y: auto;
+      max-height: 200px; overflow-y: auto;
       border: 1px solid #e9ecef;
     }
 
     .control-point {
-      fill: red;
-      cursor: grab;
+      fill: red; cursor: grab;
       transition: all 0.2s ease;
     }
 
-    .control-point:hover {
-      r: 7;
-      fill: #dc3545;
-    }
+    .control-point:hover { r: 7; fill: #dc3545; }
+    .control-point:active { cursor: grabbing; }
+    .control-point.control { fill: orange; }
 
-    .control-point:active {
-      cursor: grabbing;
-    }
-
-    .control-point.control {
-      fill: orange;
-    }
-
-    .dragging {
-      opacity: 0.7;
-    }
-
+    .dragging { opacity: 0.7; }
     .helper-line {
-      stroke: #999;
-      stroke-width: 1;
-      stroke-dasharray: 4;
-      opacity: 0.6;
+      stroke: #999; stroke-width: 1;
+      stroke-dasharray: 4; opacity: 0.6;
     }
 
     #modeSelector {
-      display: flex;
-      gap: 5px;
-      margin-bottom: 10px;
+      display: flex; gap: 5px; margin-bottom: 10px;
     }
 
     #modeSelector button {
-      flex: 1;
-      font-size: 12px;
-      padding: 8px 4px;
+      flex: 1; font-size: 12px; padding: 8px 4px;
     }
 
-    .mode-button.active {
-      background: #ddd;
-    }
+    .mode-button.active { background: #ddd; }
   </style>
 </head>
 <body>
@@ -239,8 +158,6 @@
       let isDraggingBg = false, startXBg, startYBg;
 
       const svgNS = "http://www.w3.org/2000/svg";
-
-      // Используем canvas как основной SVG
       const svg = canvas;
 
       const bgGroup = document.createElementNS(svgNS, "g");
@@ -287,42 +204,44 @@
       };
 
       function redraw() {
-  let d = '';
-  clearControlPoints();
+        let d = '';
+        clearControlPoints();
 
-  segments.forEach(s => {
-    if (commandHandlers[s.cmd]) {
-      commandHandlers[s.cmd](s);
-      switch (s.cmd) {
-        case 'M':
-        case 'L':
-          d += `${s.cmd} ${s.pts[1].x} ${s.pts[1].y} `;
-          break;
-        case 'Q':
-          d += `Q ${s.pts[1].x} ${s.pts[1].y}, ${s.pts[2].x} ${s.pts[2].y} `;
-          break;
-        case 'C':
-          d += `C ${s.pts[1].x} ${s.pts[1].y}, ${s.pts[2].x} ${s.pts[2].y}, ${s.pts[3].x} ${s.pts[3].y} `;
-          break;
+        segments.forEach(s => {
+          if (commandHandlers[s.cmd]) {
+            commandHandlers[s.cmd](s);
+            switch (s.cmd) {
+              case 'M':
+                d += `M ${s.pts[0].x} ${s.pts[0].y} `;
+                break;
+              case 'L':
+                d += `L ${s.pts[1].x} ${s.pts[1].y} `;
+                break;
+              case 'Q':
+                d += `Q ${s.pts[1].x} ${s.pts[1].y}, ${s.pts[2].x} ${s.pts[2].y} `;
+                break;
+              case 'C':
+                d += `C ${s.pts[1].x} ${s.pts[1].y}, ${s.pts[2].x} ${s.pts[2].y}, ${s.pts[3].x} ${s.pts[3].y} `;
+                break;
+            }
+          }
+        });
+
+        pathEl.setAttribute('d', d.trim());
+
+        logEl.textContent = segments.map(s => {
+          switch (s.cmd) {
+            case 'M':
+              return `M ${s.pts[0].x.toFixed(1)} ${s.pts[0].y.toFixed(1)}`;
+            case 'L':
+              return `L ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}`;
+            case 'Q':
+              return `Q ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}`;
+            case 'C':
+              return `C ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}, ${s.pts[3].x.toFixed(1)} ${s.pts[3].y.toFixed(1)}`;
+          }
+        }).join('\n');
       }
-    }
-  });
-
-  pathEl.setAttribute('d', d.trim());
-
-  logEl.textContent = segments.map(s => {
-    switch (s.cmd) {
-      case 'M':
-      case 'L':
-        return `${s.cmd} ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}`;
-      case 'Q':
-        return `Q ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}`;
-      case 'C':
-        return `C ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}, ${s.pts[3].x.toFixed(1)} ${s.pts[3].y.toFixed(1)}`;
-    }
-  }).join('\n');
-}
-
 
       function addPoint(x, y) {
         const last = segments.length ? segments[segments.length - 1].pts.slice(-1)[0] : null;
@@ -337,7 +256,6 @@
             { x, y }
           ] : null
         };
-
         const pts = createPts[currentMode]?.();
         if (!pts) return;
         segments.push({ cmd: currentMode, pts });
@@ -398,8 +316,8 @@
         helperLinesGroup.innerHTML = '';
       }
 
-      // Панель инструментов
-      toolsPanel.addEventListener('mousedown', (e) => {
+      // Панель
+      toolsPanel.addEventListener('mousedown', e => {
         const header = document.getElementById('toolsHeader');
         if (header.contains(e.target)) {
           isDraggingPanel = true;
@@ -408,17 +326,13 @@
         }
       });
 
-      document.addEventListener('mouseup', () => {
-        isDraggingPanel = false;
-      });
-
-      document.addEventListener('mousemove', (e) => {
+      document.addEventListener('mouseup', () => isDraggingPanel = false);
+      document.addEventListener('mousemove', e => {
         if (!isDraggingPanel) return;
         toolsPanel.style.left = (e.clientX - panelOffsetX) + 'px';
         toolsPanel.style.top = (e.clientY - panelOffsetY) + 'px';
       });
 
-      // Toggle панель
       window.togglePanel = function () {
         const isHidden = toolsPanel.classList.toggle('hidden');
         toggleBtn.classList.toggle('panelOpen', !isHidden);
@@ -472,7 +386,7 @@
         bgGroup.setAttribute('transform', `translate(${bgTranslate.x},${bgTranslate.y}) scale(${bgScale})`);
       }
 
-      canvas.addEventListener('wheel', (e) => {
+      canvas.addEventListener('wheel', e => {
         if (!isControllingBackground) return;
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.1 : 0.1;
@@ -480,7 +394,7 @@
         updateBgTransform();
       });
 
-      canvas.addEventListener('mousedown', (e) => {
+      canvas.addEventListener('mousedown', e => {
         if (!isControllingBackground) return;
         isDraggingBg = true;
         startXBg = e.clientX - bgTranslate.x;
@@ -493,7 +407,7 @@
         if (isControllingBackground) canvas.style.cursor = 'grab';
       });
 
-      canvas.addEventListener('mousemove', (e) => {
+      canvas.addEventListener('mousemove', e => {
         if (isControllingBackground && isDraggingBg) {
           bgTranslate.x = e.clientX - startXBg;
           bgTranslate.y = e.clientY - startYBg;
@@ -515,7 +429,7 @@
         });
       });
 
-      // Init
+      // Инициализация
       document.querySelector('[data-mode="M"]').classList.add('active');
       addPoint(50, 50);
     })();
