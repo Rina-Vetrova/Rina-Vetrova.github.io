@@ -108,38 +108,39 @@
   </style>
 </head>
 <body>
-  <svg id="canvas"></svg>
+<svg id="canvas"></svg>
 
-  <button id="toggleBtn">☰</button>
+<button id="toggleBtn">☰</button>
 
-  <div id="toolsPanel" class="hidden">
-    <div id="toolsHeader">
-      <span>Инструменты</span>
-      <span style="cursor: pointer;" onclick="togglePanel()">×</span>
-    </div>
-    <div id="toolsContent">
-      <div id="modeSelector">
-        <button class="mode-button" data-mode="M">Move (M)</button>
-        <button class="mode-button" data-mode="L">Line (L)</button>
-        <button class="mode-button" data-mode="Q">Quadratic Bezier (Q)</button>
-        <button class="mode-button" data-mode="C">Cubic Bezier (C)</button>
-      </div>
-      <button id="insertImage">📷 Загрузить фон</button>
-      <button id="toggleBgControl">⚙️ Управление фоном</button>
-      <button id="clearPath">🗑️ Очистить</button>
-      <button id="undo">↩️ Отменить</button>
-      <button id="exportSvg">💾 Сохранить SVG</button>
-      <hr>
-      <label>SVG код:</label>
-      <div id="log"></div>
-    </div>
+<div id="toolsPanel" class="hidden">
+  <div id="toolsHeader">
+    <span>Инструменты</span>
+    <span style="cursor: pointer;" onclick="togglePanel()">×</span>
   </div>
+  <div id="toolsContent">
+    <div id="modeSelector">
+      <button class="mode-button" data-mode="M">Move (M)</button>
+      <button class="mode-button" data-mode="L">Line (L)</button>
+      <button class="mode-button" data-mode="Q">Quadratic Bezier (Q)</button>
+      <button class="mode-button" data-mode="C">Cubic Bezier (C)</button>
+    </div>
+    <button id="insertImage">📷 Загрузить фон</button>
+    <button id="toggleBgControl">⚙️ Управление фоном</button>
+    <button id="clearPath">🗑️ Очистить</button>
+    <button id="undo">↩️ Отменить</button>
+    <button id="exportSvg">💾 Сохранить SVG</button>
+    <hr>
+    <label>SVG код:</label>
+    <div id="log"></div>
+  </div>
+</div>
 
-  <script>
+<script>
 (() => {
+  const svgNS = "http://www.w3.org/2000/svg";
   const canvas = document.getElementById('canvas');
-  const toolsPanel = document.getElementById('toolsPanel');
   const toggleBtn = document.getElementById('toggleBtn');
+  const toolsPanel = document.getElementById('toolsPanel');
   const modeButtons = document.querySelectorAll('.mode-button');
   const insertImageButton = document.getElementById('insertImage');
   const toggleBgControlButton = document.getElementById('toggleBgControl');
@@ -150,20 +151,20 @@
 
   let currentMode = 'M';
   let segments = [];
+
   let isDraggingPanel = false;
-  let panelOffsetX, panelOffsetY;
+  let panelOffsetX = 0, panelOffsetY = 0;
+
   let isControllingBackground = false;
 
-  // Панорама и масштабирование сцены (фон + путь)
+  let bgTransform = { x: 0, y: 0, scale: 1 };
   let sceneScale = 1;
   let sceneTranslate = { x: 0, y: 0 };
   let isPanning = false;
   let startPan = { x: 0, y: 0 };
 
-  const svgNS = "http://www.w3.org/2000/svg";
   const svg = canvas;
 
-  // Группа для всего содержимого сцены
   const sceneGroup = document.createElementNS(svgNS, "g");
   sceneGroup.setAttribute('id', 'sceneGroup');
   svg.appendChild(sceneGroup);
@@ -191,68 +192,12 @@
   pathEl.setAttribute('stroke-width', '2');
   sceneGroup.appendChild(pathEl);
 
-  function updateSceneTransform() {
-    sceneGroup.setAttribute('transform', `translate(${sceneTranslate.x},${sceneTranslate.y}) scale(${sceneScale})`);
+  function updateBgTransform() {
+    bgGroup.setAttribute('transform', `translate(${bgTransform.x},${bgTransform.y}) scale(${bgTransform.scale})`);
   }
 
-  const commandHandlers = {
-    'M': s => s.pts.forEach(pt => createControlPoint(pt)),
-    'L': s => s.pts.forEach(pt => createControlPoint(pt)),
-    'Q': s => {
-      createControlPoint(s.pts[0]);
-      createControlPoint(s.pts[1], 'control');
-      createControlPoint(s.pts[2]);
-      createHelperLine(s.pts[0], s.pts[1]);
-      createHelperLine(s.pts[1], s.pts[2]);
-    },
-    'C': s => {
-      createControlPoint(s.pts[0]);
-      createControlPoint(s.pts[1], 'control');
-      createControlPoint(s.pts[2], 'control');
-      createControlPoint(s.pts[3]);
-      createHelperLine(s.pts[0], s.pts[1]);
-      createHelperLine(s.pts[2], s.pts[3]);
-    }
-  };
-
-  function redraw() {
-    let d = '';
-    clearControlPoints();
-
-    segments.forEach(s => {
-      if (commandHandlers[s.cmd]) {
-        commandHandlers[s.cmd](s);
-        switch (s.cmd) {
-          case 'M':
-            d += `M ${s.pts[0].x} ${s.pts[0].y} `;
-            break;
-          case 'L':
-            d += `L ${s.pts[1].x} ${s.pts[1].y} `;
-            break;
-          case 'Q':
-            d += `Q ${s.pts[1].x} ${s.pts[1].y}, ${s.pts[2].x} ${s.pts[2].y} `;
-            break;
-          case 'C':
-            d += `C ${s.pts[1].x} ${s.pts[1].y}, ${s.pts[2].x} ${s.pts[2].y}, ${s.pts[3].x} ${s.pts[3].y} `;
-            break;
-        }
-      }
-    });
-
-    pathEl.setAttribute('d', d.trim());
-
-    logEl.textContent = segments.map(s => {
-      switch (s.cmd) {
-        case 'M':
-          return `M ${s.pts[0].x.toFixed(1)} ${s.pts[0].y.toFixed(1)}`;
-        case 'L':
-          return `L ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}`;
-        case 'Q':
-          return `Q ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}`;
-        case 'C':
-          return `C ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}, ${s.pts[3].x.toFixed(1)} ${s.pts[3].y.toFixed(1)}`;
-      }
-    }).join('\n');
+  function updateSceneTransform() {
+    sceneGroup.setAttribute('transform', `translate(${sceneTranslate.x},${sceneTranslate.y}) scale(${sceneScale})`);
   }
 
   function addPoint(x, y) {
@@ -281,44 +226,79 @@
     redraw();
   }
 
+  function redraw() {
+    let d = '';
+    controlPointsGroup.innerHTML = '';
+    helperLinesGroup.innerHTML = '';
+
+    segments.forEach(s => {
+      const pts = s.pts;
+      switch (s.cmd) {
+        case 'M': d += `M ${pts[0].x} ${pts[0].y} `; break;
+        case 'L': d += `L ${pts[1].x} ${pts[1].y} `; break;
+        case 'Q': d += `Q ${pts[1].x} ${pts[1].y}, ${pts[2].x} ${pts[2].y} `; break;
+        case 'C': d += `C ${pts[1].x} ${pts[1].y}, ${pts[2].x} ${pts[2].y}, ${pts[3].x} ${pts[3].y} `; break;
+      }
+      pts.forEach((pt, idx) => {
+        if (idx === 0 || idx === pts.length - 1 || s.cmd === 'M' || s.cmd === 'L')
+          createControlPoint(pt);
+        else
+          createControlPoint(pt, 'control');
+      });
+      if (s.cmd === 'Q') {
+        createHelperLine(pts[0], pts[1]);
+        createHelperLine(pts[1], pts[2]);
+      }
+      if (s.cmd === 'C') {
+        createHelperLine(pts[0], pts[1]);
+        createHelperLine(pts[2], pts[3]);
+      }
+    });
+
+    pathEl.setAttribute('d', d.trim());
+
+    logEl.textContent = segments.map(s => {
+      const pts = s.pts.map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`);
+      return `${s.cmd} ${pts.join(', ')}`;
+    }).join('\n');
+  }
+
   function createControlPoint(pt, type = '') {
-    const circle = document.createElementNS(svgNS, "circle");
-    circle.setAttribute('cx', pt.x);
-    circle.setAttribute('cy', pt.y);
-    circle.setAttribute('r', 5);
-    circle.setAttribute('class', `control-point ${type}`);
-    controlPointsGroup.appendChild(circle);
+    const c = document.createElementNS(svgNS, "circle");
+    c.setAttribute('r', 5);
+    c.setAttribute('cx', pt.x);
+    c.setAttribute('cy', pt.y);
+    c.setAttribute('class', `control-point ${type}`);
+    controlPointsGroup.appendChild(c);
 
     let isDragging = false;
     let offsetX, offsetY;
 
-    circle.addEventListener('mousedown', e => {
+    c.addEventListener('mousedown', e => {
       e.preventDefault();
       isDragging = true;
-      circle.classList.add('dragging');
-      offsetX = e.clientX - pt.x * sceneScale - sceneTranslate.x;
-      offsetY = e.clientY - pt.y * sceneScale - sceneTranslate.y;
+      offsetX = e.clientX;
+      offsetY = e.clientY;
 
-      const move = e => {
+      function onMove(e) {
         if (!isDragging) return;
-        const x = (e.clientX - offsetX - sceneTranslate.x) / sceneScale;
-        const y = (e.clientY - offsetY - sceneTranslate.y) / sceneScale;
-        pt.x = x;
-        pt.y = y;
-        circle.setAttribute('cx', x);
-        circle.setAttribute('cy', y);
+        const dx = (e.clientX - offsetX) / sceneScale;
+        const dy = (e.clientY - offsetY) / sceneScale;
+        pt.x += dx;
+        pt.y += dy;
+        offsetX = e.clientX;
+        offsetY = e.clientY;
         redraw();
-      };
+      }
 
-      const up = () => {
+      function onUp() {
         isDragging = false;
-        circle.classList.remove('dragging');
-        document.removeEventListener('mousemove', move);
-        document.removeEventListener('mouseup', up);
-      };
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
 
-      document.addEventListener('mousemove', move);
-      document.addEventListener('mouseup', up);
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
     });
   }
 
@@ -332,14 +312,14 @@
     helperLinesGroup.appendChild(line);
   }
 
-  function clearControlPoints() {
-    controlPointsGroup.innerHTML = '';
-    helperLinesGroup.innerHTML = '';
-  }
-
   canvas.addEventListener('mousedown', e => {
-    if (isControllingBackground) return;
-    if (e.button === 0 && !e.target.closest('.control-point')) {
+    if (e.target.closest('.control-point')) return;
+
+    if (isControllingBackground) {
+      isPanning = true;
+      startPan = { x: e.clientX - bgTransform.x, y: e.clientY - bgTransform.y };
+      canvas.style.cursor = 'grabbing';
+    } else {
       isPanning = true;
       startPan = { x: e.clientX - sceneTranslate.x, y: e.clientY - sceneTranslate.y };
       canvas.style.cursor = 'grabbing';
@@ -347,7 +327,12 @@
   });
 
   canvas.addEventListener('mousemove', e => {
-    if (isPanning) {
+    if (!isPanning) return;
+    if (isControllingBackground) {
+      bgTransform.x = e.clientX - startPan.x;
+      bgTransform.y = e.clientY - startPan.y;
+      updateBgTransform();
+    } else {
       sceneTranslate.x = e.clientX - startPan.x;
       sceneTranslate.y = e.clientY - startPan.y;
       updateSceneTransform();
@@ -361,54 +346,41 @@
 
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
-    if (isControllingBackground) return;
-
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
     const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
 
-    const beforeZoom = {
-      x: (mouseX - sceneTranslate.x) / sceneScale,
-      y: (mouseY - sceneTranslate.y) / sceneScale
-    };
-
-    sceneScale *= zoomFactor;
-    sceneScale = Math.max(0.1, Math.min(sceneScale, 10));
-
-    sceneTranslate.x = mouseX - beforeZoom.x * sceneScale;
-    sceneTranslate.y = mouseY - beforeZoom.y * sceneScale;
-
-    updateSceneTransform();
-  });
-
-  canvas.addEventListener('click', e => {
-    if (isControllingBackground || e.target.closest('.control-point')) return;
-    addPoint(e.clientX, e.clientY);
-  });
-
-  toolsPanel.addEventListener('mousedown', e => {
-    const header = document.getElementById('toolsHeader');
-    if (header.contains(e.target)) {
-      isDraggingPanel = true;
-      panelOffsetX = e.clientX - toolsPanel.offsetLeft;
-      panelOffsetY = e.clientY - toolsPanel.offsetTop;
+    if (isControllingBackground) {
+      const px = (mouseX - bgTransform.x) / bgTransform.scale;
+      const py = (mouseY - bgTransform.y) / bgTransform.scale;
+      bgTransform.scale *= zoomFactor;
+      bgTransform.scale = Math.max(0.1, Math.min(10, bgTransform.scale));
+      bgTransform.x = mouseX - px * bgTransform.scale;
+      bgTransform.y = mouseY - py * bgTransform.scale;
+      updateBgTransform();
+    } else {
+      const px = (mouseX - sceneTranslate.x) / sceneScale;
+      const py = (mouseY - sceneTranslate.y) / sceneScale;
+      sceneScale *= zoomFactor;
+      sceneScale = Math.max(0.1, Math.min(10, sceneScale));
+      sceneTranslate.x = mouseX - px * sceneScale;
+      sceneTranslate.y = mouseY - py * sceneScale;
+      updateSceneTransform();
     }
   });
 
-  document.addEventListener('mouseup', () => isDraggingPanel = false);
-  document.addEventListener('mousemove', e => {
-    if (!isDraggingPanel) return;
-    toolsPanel.style.left = (e.clientX - panelOffsetX) + 'px';
-    toolsPanel.style.top = (e.clientY - panelOffsetY) + 'px';
+  canvas.addEventListener('click', e => {
+    if (!isControllingBackground && !e.target.closest('.control-point')) {
+      addPoint(e.clientX, e.clientY);
+    }
   });
 
-  window.togglePanel = function () {
+  toggleBtn.onclick = () => {
     const isHidden = toolsPanel.classList.toggle('hidden');
     toggleBtn.classList.toggle('panelOpen', !isHidden);
     toggleBtn.textContent = isHidden ? '☰' : '×';
   };
-  toggleBtn.onclick = togglePanel;
 
   undoButton.onclick = () => {
     segments.pop();
@@ -439,7 +411,11 @@
       const reader = new FileReader();
       reader.onload = evt => {
         bgImage.setAttribute('href', evt.target.result);
-        updateSceneTransform();
+        bgImage.setAttribute('x', 0);
+        bgImage.setAttribute('y', 0);
+        bgImage.setAttribute('width', '100%');
+        bgImage.setAttribute('height', '100%');
+        updateBgTransform();
       };
       reader.readAsDataURL(file);
     };
@@ -452,18 +428,30 @@
     canvas.style.cursor = isControllingBackground ? 'grab' : 'crosshair';
   };
 
-  modeButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      currentMode = button.dataset.mode;
-      modeButtons.forEach(b => b.classList.remove('active'));
-      button.classList.add('active');
-    });
+  document.getElementById('toolsHeader').addEventListener('mousedown', e => {
+    isDraggingPanel = true;
+    panelOffsetX = e.clientX - toolsPanel.offsetLeft;
+    panelOffsetY = e.clientY - toolsPanel.offsetTop;
   });
 
-  // Инициализация
+  document.addEventListener('mouseup', () => isDraggingPanel = false);
+  document.addEventListener('mousemove', e => {
+    if (!isDraggingPanel) return;
+    toolsPanel.style.left = (e.clientX - panelOffsetX) + 'px';
+    toolsPanel.style.top = (e.clientY - panelOffsetY) + 'px';
+  });
+
+  modeButtons.forEach(btn => {
+    btn.onclick = () => {
+      currentMode = btn.dataset.mode;
+      modeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+  });
+
   document.querySelector('[data-mode="M"]').classList.add('active');
   updateSceneTransform();
-  addPoint(50, 50);
+  updateBgTransform();
 })();
 </script>
 
