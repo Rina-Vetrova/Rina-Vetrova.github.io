@@ -126,6 +126,8 @@
       </div>
       <button id="insertImage">📷 Загрузить фон</button>
       <button id="toggleBgControl">⚙️ Управление фоном</button>
+<button id="resetView">🔄 Сброс трансформации</button>
+
       <button id="clearPath">🗑️ Очистить</button>
       <button id="undo">↩️ Отменить</button>
       <button id="exportSvg">💾 Сохранить SVG</button>
@@ -162,7 +164,13 @@
 
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = canvas;
+const resetViewButton = document.getElementById('resetView');
 
+resetViewButton.onclick = () => {
+  sceneScale = 1;
+  sceneTranslate = { x: 0, y: 0 };
+  updateSceneTransform();
+};
   // Группа для всего содержимого сцены
   const sceneGroup = document.createElementNS(svgNS, "g");
   sceneGroup.setAttribute('id', 'sceneGroup');
@@ -338,40 +346,49 @@
   }
 
   canvas.addEventListener('mousedown', e => {
-    if (isControllingBackground) return;
-    if (e.button === 0 && !e.target.closest('.control-point')) {
-      isPanning = true;
-      startPan = { x: e.clientX - sceneTranslate.x, y: e.clientY - sceneTranslate.y };
-      canvas.style.cursor = 'grabbing';
-    }
-  });
+  if (e.button !== 0 || e.target.closest('.control-point')) return;
 
-  canvas.addEventListener('mousemove', e => {
-    if (isPanning) {
-      sceneTranslate.x = e.clientX - startPan.x;
-      sceneTranslate.y = e.clientY - startPan.y;
-      updateSceneTransform();
-    }
-  });
+  isPanning = true;
+  startPan = { x: e.clientX - sceneTranslate.x, y: e.clientY - sceneTranslate.y };
+  canvas.style.cursor = 'grabbing';
+});
 
-  canvas.addEventListener('mouseup', () => {
-    isPanning = false;
-    canvas.style.cursor = isControllingBackground ? 'grab' : 'crosshair';
-  });
+canvas.addEventListener('mousemove', e => {
+  if (isPanning) {
+    sceneTranslate.x = e.clientX - startPan.x;
+    sceneTranslate.y = e.clientY - startPan.y;
+    updateSceneTransform();
+  }
+});
 
-  canvas.addEventListener('wheel', e => {
-    e.preventDefault();
-    if (isControllingBackground) return;
+canvas.addEventListener('mouseup', () => {
+  isPanning = false;
+  canvas.style.cursor = isControllingBackground ? 'grab' : 'crosshair';
+});
 
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+// Обработчик колеса мыши (масштабирование)
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
 
-    const beforeZoom = {
-      x: (mouseX - sceneTranslate.x) / sceneScale,
-      y: (mouseY - sceneTranslate.y) / sceneScale
-    };
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+
+  const beforeZoom = {
+    x: (mouseX - sceneTranslate.x) / sceneScale,
+    y: (mouseY - sceneTranslate.y) / sceneScale
+  };
+
+  sceneScale *= zoomFactor;
+  sceneScale = Math.max(0.1, Math.min(sceneScale, 10));
+
+  sceneTranslate.x = mouseX - beforeZoom.x * sceneScale;
+  sceneTranslate.y = mouseY - beforeZoom.y * sceneScale;
+
+  updateSceneTransform();
+});
+
 
     sceneScale *= zoomFactor;
     sceneScale = Math.max(0.1, Math.min(sceneScale, 10));
