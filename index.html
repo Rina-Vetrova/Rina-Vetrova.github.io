@@ -389,16 +389,6 @@ canvas.addEventListener('wheel', e => {
   updateSceneTransform();
 });
 
-
-    sceneScale *= zoomFactor;
-    sceneScale = Math.max(0.1, Math.min(sceneScale, 10));
-
-    sceneTranslate.x = mouseX - beforeZoom.x * sceneScale;
-    sceneTranslate.y = mouseY - beforeZoom.y * sceneScale;
-
-    updateSceneTransform();
-  });
-
   canvas.addEventListener('click', e => {
     if (isControllingBackground || e.target.closest('.control-point')) return;
     addPoint(e.clientX, e.clientY);
