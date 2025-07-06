@@ -126,7 +126,6 @@
       </div>
       <button id="insertImage">📷 Загрузить фон</button>
       <button id="toggleBgControl">⚙️ Управление фоном</button>
-      <button id="resetView">🔄 Сброс трансформации</button>
       <button id="clearPath">🗑️ Очистить</button>
       <button id="undo">↩️ Отменить</button>
       <button id="exportSvg">💾 Сохранить SVG</button>
@@ -148,13 +147,14 @@
   const undoButton = document.getElementById('undo');
   const exportSvgButton = document.getElementById('exportSvg');
   const logEl = document.getElementById('log');
-  const resetViewButton = document.getElementById('resetView');
 
   let currentMode = 'M';
   let segments = [];
   let isDraggingPanel = false;
   let panelOffsetX, panelOffsetY;
   let isControllingBackground = false;
+
+  // Панорама и масштабирование сцены (фон + путь)
   let sceneScale = 1;
   let sceneTranslate = { x: 0, y: 0 };
   let isPanning = false;
@@ -163,6 +163,7 @@
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = canvas;
 
+  // Группа для всего содержимого сцены
   const sceneGroup = document.createElementNS(svgNS, "g");
   sceneGroup.setAttribute('id', 'sceneGroup');
   svg.appendChild(sceneGroup);
@@ -222,34 +223,49 @@
       if (commandHandlers[s.cmd]) {
         commandHandlers[s.cmd](s);
         switch (s.cmd) {
-          case 'M': d += `M ${s.pts[0].x} ${s.pts[0].y} `; break;
-          case 'L': d += `L ${s.pts[1].x} ${s.pts[1].y} `; break;
-          case 'Q': d += `Q ${s.pts[1].x} ${s.pts[1].y}, ${s.pts[2].x} ${s.pts[2].y} `; break;
-          case 'C': d += `C ${s.pts[1].x} ${s.pts[1].y}, ${s.pts[2].x} ${s.pts[2].y}, ${s.pts[3].x} ${s.pts[3].y} `; break;
+          case 'M':
+            d += `M ${s.pts[0].x} ${s.pts[0].y} `;
+            break;
+          case 'L':
+            d += `L ${s.pts[1].x} ${s.pts[1].y} `;
+            break;
+          case 'Q':
+            d += `Q ${s.pts[1].x} ${s.pts[1].y}, ${s.pts[2].x} ${s.pts[2].y} `;
+            break;
+          case 'C':
+            d += `C ${s.pts[1].x} ${s.pts[1].y}, ${s.pts[2].x} ${s.pts[2].y}, ${s.pts[3].x} ${s.pts[3].y} `;
+            break;
         }
       }
     });
 
     pathEl.setAttribute('d', d.trim());
+
     logEl.textContent = segments.map(s => {
       switch (s.cmd) {
-        case 'M': return `M ${s.pts[0].x.toFixed(1)} ${s.pts[0].y.toFixed(1)}`;
-        case 'L': return `L ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}`;
-        case 'Q': return `Q ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}`;
-        case 'C': return `C ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}, ${s.pts[3].x.toFixed(1)} ${s.pts[3].y.toFixed(1)}`;
+        case 'M':
+          return `M ${s.pts[0].x.toFixed(1)} ${s.pts[0].y.toFixed(1)}`;
+        case 'L':
+          return `L ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}`;
+        case 'Q':
+          return `Q ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}`;
+        case 'C':
+          return `C ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}, ${s.pts[3].x.toFixed(1)} ${s.pts[3].y.toFixed(1)}`;
       }
     }).join('\n');
   }
 
   function addPoint(x, y) {
     const rect = canvas.getBoundingClientRect();
-    const pt = {
+    const screenToSvg = (x, y) => ({
       x: (x - rect.left - sceneTranslate.x) / sceneScale,
       y: (y - rect.top - sceneTranslate.y) / sceneScale
-    };
+    });
+    const pt = screenToSvg(x, y);
+
     const last = segments.length ? segments[segments.length - 1].pts.slice(-1)[0] : null;
     const createPts = {
-      'M': () => [pt],
+      'M': () => [{ x: pt.x, y: pt.y }],
       'L': () => last ? [last, pt] : null,
       'Q': () => last ? [last, { x: (last.x + pt.x) / 2, y: (last.y + pt.y) / 2 - 50 }, pt] : null,
       'C': () => last ? [
@@ -322,10 +338,12 @@
   }
 
   canvas.addEventListener('mousedown', e => {
-    if (e.button !== 0 || e.target.closest('.control-point')) return;
-    isPanning = true;
-    startPan = { x: e.clientX - sceneTranslate.x, y: e.clientY - sceneTranslate.y };
-    canvas.style.cursor = 'grabbing';
+    if (isControllingBackground) return;
+    if (e.button === 0 && !e.target.closest('.control-point')) {
+      isPanning = true;
+      startPan = { x: e.clientX - sceneTranslate.x, y: e.clientY - sceneTranslate.y };
+      canvas.style.cursor = 'grabbing';
+    }
   });
 
   canvas.addEventListener('mousemove', e => {
@@ -343,18 +361,24 @@
 
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
+    if (isControllingBackground) return;
+
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
     const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+
     const beforeZoom = {
       x: (mouseX - sceneTranslate.x) / sceneScale,
       y: (mouseY - sceneTranslate.y) / sceneScale
     };
+
     sceneScale *= zoomFactor;
     sceneScale = Math.max(0.1, Math.min(sceneScale, 10));
+
     sceneTranslate.x = mouseX - beforeZoom.x * sceneScale;
     sceneTranslate.y = mouseY - beforeZoom.y * sceneScale;
+
     updateSceneTransform();
   });
 
@@ -384,7 +408,6 @@
     toggleBtn.classList.toggle('panelOpen', !isHidden);
     toggleBtn.textContent = isHidden ? '☰' : '×';
   };
-
   toggleBtn.onclick = togglePanel;
 
   undoButton.onclick = () => {
@@ -437,6 +460,7 @@
     });
   });
 
+  // Инициализация
   document.querySelector('[data-mode="M"]').classList.add('active');
   updateSceneTransform();
   addPoint(50, 50);
