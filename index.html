@@ -287,17 +287,42 @@
       };
 
       function redraw() {
-        let d = '';
-        clearControlPoints();
-        segments.forEach(s => {
-          if (commandHandlers[s.cmd]) {
-            commandHandlers[s.cmd](s);
-            d += s.cmd + ' ' + s.pts.map(pt => `${pt.x} ${pt.y}`).join(' ') + ' ';
-          }
-        });
-        pathEl.setAttribute('d', d.trim());
-        logEl.textContent = segments.map(s => `${s.cmd} ${s.pts.map(pt => `${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(' ')}`).join('\n');
+  let d = '';
+  clearControlPoints();
+
+  segments.forEach(s => {
+    if (commandHandlers[s.cmd]) {
+      commandHandlers[s.cmd](s);
+      switch (s.cmd) {
+        case 'M':
+        case 'L':
+          d += `${s.cmd} ${s.pts[1].x} ${s.pts[1].y} `;
+          break;
+        case 'Q':
+          d += `Q ${s.pts[1].x} ${s.pts[1].y}, ${s.pts[2].x} ${s.pts[2].y} `;
+          break;
+        case 'C':
+          d += `C ${s.pts[1].x} ${s.pts[1].y}, ${s.pts[2].x} ${s.pts[2].y}, ${s.pts[3].x} ${s.pts[3].y} `;
+          break;
       }
+    }
+  });
+
+  pathEl.setAttribute('d', d.trim());
+
+  logEl.textContent = segments.map(s => {
+    switch (s.cmd) {
+      case 'M':
+      case 'L':
+        return `${s.cmd} ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}`;
+      case 'Q':
+        return `Q ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}`;
+      case 'C':
+        return `C ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}, ${s.pts[3].x.toFixed(1)} ${s.pts[3].y.toFixed(1)}`;
+    }
+  }).join('\n');
+}
+
 
       function addPoint(x, y) {
         const last = segments.length ? segments[segments.length - 1].pts.slice(-1)[0] : null;
