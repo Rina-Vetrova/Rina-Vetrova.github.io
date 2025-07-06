@@ -172,17 +172,14 @@
   </style>
 </head>
 <body>
-
     <svg id="canvas" width="600" height="400"></svg>
-
     <button id="toggleBtn">☰</button>
 
-    <div id="toolsPanel" class="hidden">
-        <div id="toolsHeader">
+    <div id="toolsPanel" class="hidden" style="position: absolute; top: 10px; left: 10px;">
+        <div id="toolsHeader" style="cursor: move;">
             <span>Инструменты</span>
             <span style="cursor: pointer;" onclick="togglePanel()">×</span>
         </div>
-
         <div id="toolsContent">
             <div id="modeSelector">
                 <button class="mode-button" data-mode="M">Move (M)</button>
@@ -190,23 +187,19 @@
                 <button class="mode-button" data-mode="Q">Quadratic Bezier (Q)</button>
                 <button class="mode-button" data-mode="C">Cubic Bezier (C)</button>
             </div>
-
             <button id="insertImage">📷 Загрузить фон</button>
             <button id="toggleBgControl">⚙️ Управление фоном</button>
             <button id="clearPath">🗑️ Очистить</button>
-
             <button id="undo">↩️ Отменить</button>
-
+            <button id="exportSvg">💾 Сохранить SVG</button>
             <hr>
             <label>SVG код:</label>
-            <div id="log"></div>
+            <div id="log" style="white-space: pre; font-family: monospace;"></div>
         </div>
     </div>
 
-
     <script>
         (() => {
-            // Получение элементов DOM
             const canvas = document.getElementById('canvas');
             const toolsPanel = document.getElementById('toolsPanel');
             const toggleBtn = document.getElementById('toggleBtn');
@@ -215,132 +208,107 @@
             const toggleBgControlButton = document.getElementById('toggleBgControl');
             const clearPathButton = document.getElementById('clearPath');
             const undoButton = document.getElementById('undo');
+            const exportSvgButton = document.getElementById('exportSvg');
             const logEl = document.getElementById('log');
 
-            // Переменные состояния
             let currentMode = 'M';
             let segments = [];
             let isDraggingPanel = false;
             let panelOffsetX, panelOffsetY;
             let isControllingBackground = false;
-            let bgImage = null; // Будем создавать изображение динамически
+            let bgScale = 1;
+            let bgTranslate = { x: 0, y: 0 };
+            let isDraggingBg = false, startXBg, startYBg;
 
-            // Создаем элементы SVG
-            let svgNS = "http://www.w3.org/2000/svg";
-            let svg = document.createElementNS(svgNS, "svg");
+            const svgNS = "http://www.w3.org/2000/svg";
+
+            const svg = document.createElementNS(svgNS, "svg");
             svg.setAttribute('width', '100%');
             svg.setAttribute('height', '100%');
             svg.setAttribute('style', 'position:absolute; top:0; left:0;');
-            canvas.appendChild(svg); // Добавляем SVG в контейнер
+            canvas.appendChild(svg);
 
-            let pathEl = document.createElementNS(svgNS, "path");
-            pathEl.setAttribute('id', 'path');
-            pathEl.setAttribute('d', '');
-            svg.appendChild(pathEl);
+            // Background group
+            const bgGroup = document.createElementNS(svgNS, "g");
+            bgGroup.setAttribute('id', 'bgGroup');
+            svg.appendChild(bgGroup);
 
-            let controlPointsGroup = document.createElementNS(svgNS, "g");
-            controlPointsGroup.setAttribute('id', 'control-points');
-            svg.appendChild(controlPointsGroup);
+            const bgImage = document.createElementNS(svgNS, "image");
+            bgImage.setAttribute('id', 'bgImage');
+            bgGroup.appendChild(bgImage);
 
-            let helperLinesGroup = document.createElementNS(svgNS, "g");
+            const helperLinesGroup = document.createElementNS(svgNS, "g");
             helperLinesGroup.setAttribute('id', 'helper-lines');
             svg.appendChild(helperLinesGroup);
 
-           // Создаем и добавляем bgImage в SVG
-            let bgImage = document.createElementNS(svgNS, "image");
-            bgImage.setAttribute('id', 'bgImage');
-            svg.appendChild(bgImage);
+            const controlPointsGroup = document.createElementNS(svgNS, "g");
+            controlPointsGroup.setAttribute('id', 'control-points');
+            svg.appendChild(controlPointsGroup);
 
-            function createBgImage(){
-                bgImage = document.createElementNS(svgNS, "image");
-                bgImage.setAttribute('id', 'bgImage');
-                bgImage.setAttribute('x', '0'); // Начальное положение
-                bgImage.setAttribute('y', '0');
-                bgImage.setAttribute('z-index', '1');
-                svg.appendChild(bgImage);
-            }
-            // Функции для работы с путем и контрольными точками
+            const pathEl = document.createElementNS(svgNS, "path");
+            pathEl.setAttribute('id', 'path');
+            svg.appendChild(pathEl);
 
-              const commandHandlers = {
-                'M': (ctx, s) => s.pts.forEach(pt => { ctx.moveTo(pt.x, pt.y); createControlPoint(pt); }),
-                'L': (ctx, s) => s.pts.forEach(pt => { ctx.lineTo(pt.x, pt.y); createControlPoint(pt); }),
-
-                'Q': (ctx, s) => {
-                  ctx.quadraticCurveTo(s.pts[1].x, s.pts[1].y, s.pts[2].x, s.pts[2].y);
-                   createControlPoint(s.pts[0]); // Начальная точка
-                    createControlPoint(s.pts[1], 'control'); // Первая контрольная точка
-                    createControlPoint(s.pts[2]); // Конечная точка
-                    createHelperLine(s.pts[0], s.pts[1]); // Линия от начальной точки к первой контрольной
-                    createHelperLine(s.pts[1], s.pts[2]); // Линия от первой контрольной к конечной
+            const commandHandlers = {
+                'M': (s) => s.pts.forEach(pt => createControlPoint(pt)),
+                'L': (s) => s.pts.forEach(pt => createControlPoint(pt)),
+                'Q': (s) => {
+                    createControlPoint(s.pts[0]);
+                    createControlPoint(s.pts[1], 'control');
+                    createControlPoint(s.pts[2]);
+                    createHelperLine(s.pts[0], s.pts[1]);
+                    createHelperLine(s.pts[1], s.pts[2]);
                 },
-                'C': (ctx, s) => {
-                  ctx.bezierCurveTo(s.pts[1].x, s.pts[1].y, s.pts[2].x, s.pts[2].y, s.pts[3].x, s.pts[3].y);
-                    createControlPoint(s.pts[0]); // Начальная точка
-                    createControlPoint(s.pts[1], 'control'); // Первая контрольная точка
-                    createControlPoint(s.pts[2], 'control'); // Вторая контрольная точка
-                    createControlPoint(s.pts[3]); // Конечная точка
-                    createHelperLine(s.pts[0], s.pts[1]); // Линия от начальной точки к первой контрольной
-                    createHelperLine(s.pts[2], s.pts[3]); // Линия от второй контрольной к конечной
+                'C': (s) => {
+                    createControlPoint(s.pts[0]);
+                    createControlPoint(s.pts[1], 'control');
+                    createControlPoint(s.pts[2], 'control');
+                    createControlPoint(s.pts[3]);
+                    createHelperLine(s.pts[0], s.pts[1]);
+                    createHelperLine(s.pts[2], s.pts[3]);
                 }
-              };
+            };
+
             function redraw() {
                 let d = '';
                 clearControlPoints();
 
                 segments.forEach(s => {
-                  const handler = commandHandlers[s.cmd];
-                  if (handler) {
-                    //handler(svg, s); // svg doesnt have those methods, it needs to be a canvas context
-                    d += s.cmd + ' ' + s.pts.map(pt => `${pt.x} ${pt.y}`).join(' '); // упрощенное построение строки d
-                  } else {
-                    console.warn('Unknown command:', s.cmd);
-                  }
+                    if (commandHandlers[s.cmd]) {
+                        commandHandlers[s.cmd](s);
+                        d += s.cmd + ' ' + s.pts.map(pt => `${pt.x} ${pt.y}`).join(' ') + ' ';
+                    }
                 });
 
                 pathEl.setAttribute('d', d.trim());
-
-                // Обновление лога (упрощенно)
                 logEl.textContent = segments.map(s => `${s.cmd} ${s.pts.map(pt => `${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(' ')}`).join('\n');
-              }
+            }
 
             function addPoint(x, y) {
-                const last = segments.length ? segments[segments.length-1].pts.slice(-1)[0] : null;
-                let pts = [];
-
+                const last = segments.length ? segments[segments.length - 1].pts.slice(-1)[0] : null;
                 const createPts = {
-                    'M': () => [{x, y}],
-                    'L': () => last ? [{x: last.x, y: last.y}, {x, y}] : null,
+                    'M': () => [{ x, y }],
+                    'L': () => last ? [last, { x, y }] : null,
                     'Q': () => last ? [
-                        {x: last.x, y: last.y},
-                        {x: (last.x + x) / 2, y: (last.y + y) / 2 - 50},
-                        {x, y}
+                        last,
+                        { x: (last.x + x) / 2, y: (last.y + y) / 2 - 50 },
+                        { x, y }
                     ] : null,
                     'C': () => last ? [
-                        {x: last.x, y: last.y},
-                        {x: last.x + (x - last.x) * 0.3, y: last.y + (y - last.y) * 0.3 - 30},
-                        {x: last.x + (x - last.x) * 0.7, y: last.y + (y - last.y) * 0.7 + 30},
-                        {x, y}
+                        last,
+                        { x: last.x + (x - last.x) * 0.3, y: last.y + (y - last.y) * 0.3 - 30 },
+                        { x: last.x + (x - last.x) * 0.7, y: last.y + (y - last.y) * 0.7 + 30 },
+                        { x, y }
                     ] : null
                 };
 
-                const ptsCreator = createPts[currentMode];
+                const pts = createPts[currentMode]?.();
+                if (!pts) return;
 
-                if (ptsCreator) {
-                    pts = ptsCreator();
-                    if (!pts) return;
-
-                    segments.push({
-                        cmd: currentMode,
-                        pts: pts
-                    });
-
-                    redraw();
-                } else {
-                    console.warn('Unknown mode:', currentMode);
-                }
+                segments.push({ cmd: currentMode, pts });
+                redraw();
             }
 
-            // Функции для создания элементов SVG
             function createControlPoint(pt, type = '') {
                 const circle = document.createElementNS(svgNS, "circle");
                 circle.setAttribute('cx', pt.x);
@@ -350,40 +318,38 @@
                 controlPointsGroup.appendChild(circle);
 
                 let isDragging = false;
-                let startX, startY;
+                let offsetX, offsetY;
 
                 circle.addEventListener('mousedown', e => {
                     e.preventDefault();
                     e.stopPropagation();
                     isDragging = true;
                     circle.classList.add('dragging');
-                    startX = e.clientX - pt.x;
-                    startY = e.clientY - pt.y;
+                    offsetX = e.clientX - pt.x;
+                    offsetY = e.clientY - pt.y;
 
-                    const onMouseMove = e => {
+                    const move = e => {
                         if (!isDragging) return;
-                        pt.x = e.clientX - startX;
-                        pt.y = e.clientY - startY;
+                        pt.x = e.clientX - offsetX;
+                        pt.y = e.clientY - offsetY;
                         circle.setAttribute('cx', pt.x);
                         circle.setAttribute('cy', pt.y);
                         redraw();
                     };
 
-                    const onMouseUp = () => {
+                    const up = () => {
                         isDragging = false;
                         circle.classList.remove('dragging');
-                        document.removeEventListener('mousemove', onMouseMove);
-                        document.removeEventListener('mouseup', onMouseUp);
+                        document.removeEventListener('mousemove', move);
+                        document.removeEventListener('mouseup', up);
                     };
 
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', onMouseUp);
+                    document.addEventListener('mousemove', move);
+                    document.addEventListener('mouseup', up);
                 });
-
-                return circle;
             }
 
-             function createHelperLine(pt1, pt2) {
+            function createHelperLine(pt1, pt2) {
                 const line = document.createElementNS(svgNS, "line");
                 line.setAttribute('x1', pt1.x);
                 line.setAttribute('y1', pt1.y);
@@ -391,34 +357,25 @@
                 line.setAttribute('y2', pt2.y);
                 line.setAttribute('class', 'helper-line');
                 helperLinesGroup.appendChild(line);
-                return line;
-              }
-
-            function clearControlPoints() {
-                while (controlPointsGroup.firstChild) {
-                    controlPointsGroup.removeChild(controlPointsGroup.firstChild);
-                }
-                while (helperLinesGroup.firstChild) {
-                  helperLinesGroup.removeChild(helperLinesGroup.firstChild);
-              }
-
             }
 
-            // Обработчики событий
+            function clearControlPoints() {
+                controlPointsGroup.innerHTML = '';
+                helperLinesGroup.innerHTML = '';
+            }
 
-            // Перетаскивание панели инструментов (только за заголовок)
+            // === Панель инструментов ===
             toolsPanel.addEventListener('mousedown', (e) => {
-                if (e.target === toolsPanel.querySelector('#toolsHeader')) { // Проверяем, что кликнули именно на заголовок
+                const header = toolsPanel.querySelector('#toolsHeader');
+                if (header.contains(e.target)) {
                     isDraggingPanel = true;
                     panelOffsetX = e.clientX - toolsPanel.offsetLeft;
                     panelOffsetY = e.clientY - toolsPanel.offsetTop;
-                    toolsPanel.style.cursor = 'grabbing';
                 }
             });
 
             document.addEventListener('mouseup', () => {
                 isDraggingPanel = false;
-                toolsPanel.style.cursor = 'move';
             });
 
             document.addEventListener('mousemove', (e) => {
@@ -426,130 +383,119 @@
                 toolsPanel.style.left = (e.clientX - panelOffsetX) + 'px';
                 toolsPanel.style.top = (e.clientY - panelOffsetY) + 'px';
             });
-          window.addEventListener('resize', () => {
-            canvas.setAttribute('width', window.innerWidth);
-            canvas.setAttribute('height', window.innerHeight);
-            svg.setAttribute('width', window.innerWidth);
-            svg.setAttribute('height', window.innerHeight);
-        });
 
-            // Переключение видимости панели инструментов
+            // Кнопки
             window.togglePanel = function () {
-                const isHidden = toolsPanel.classList.contains('hidden');
-                toolsPanel.classList.toggle('hidden');
-                toggleBtn.classList.toggle('panelOpen');
-                toggleBtn.textContent = isHidden ? '×' : '☰';
-
+                const isHidden = toolsPanel.classList.toggle('hidden');
+                toggleBtn.textContent = isHidden ? '☰' : '×';
             };
             toggleBtn.onclick = togglePanel;
-            //Обработчик кнопки отмены
-                undoButton.addEventListener('click', () => {
-                  //  undo();
-                });
-            // Добавление обработчика кнопки очистки
-                clearPathButton.addEventListener('click', () => {
-                    //clearPath();
-                });
 
-            // Добавление обработчика для загрузки фонового изображения
-                insertImageButton.addEventListener('click', () => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.accept = 'image/*';
-                  input.onchange = (e) => {
+            undoButton.onclick = () => {
+                segments.pop();
+                redraw();
+            };
+
+            clearPathButton.onclick = () => {
+                segments = [];
+                redraw();
+            };
+
+            exportSvgButton.onclick = () => {
+                const content = `<svg xmlns="${svgNS}" width="${canvas.clientWidth}" height="${canvas.clientHeight}">${svg.innerHTML}</svg>`;
+                const blob = new Blob([content], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'drawing.svg';
+                a.click();
+            };
+
+            insertImageButton.onclick = () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = e => {
                     const file = e.target.files[0];
                     const reader = new FileReader();
-                    reader.onload = (event) => {
-                        if (!bgImage)
-                            createBgImage();
-                      bgImage.setAttribute('href', event.target.result);
-                      bgImage.setAttribute('width', canvas.clientWidth);
-                      bgImage.setAttribute('height', canvas.clientHeight);
+                    reader.onload = evt => {
+                        bgImage.setAttribute('href', evt.target.result);
+                        updateBgTransform();
                     };
                     reader.readAsDataURL(file);
-                  };
-                  input.click();
-                });
+                };
+                input.click();
+            };
 
-            // Управление фоном: масштабирование и перемещение
+            toggleBgControlButton.onclick = () => {
+                isControllingBackground = !isControllingBackground;
+                toggleBgControlButton.classList.toggle('active', isControllingBackground);
+                canvas.style.cursor = isControllingBackground ? 'grab' : 'default';
+            };
 
-           canvas.addEventListener('wheel', (e) => {
-            if (isControllingBackground && bgImage) {
-                e.preventDefault(); // Предотвращаем стандартную прокрутку страницы
-                let scale = parseFloat(bgImage.getAttribute('scale') || 1); // Начальный масштаб
-                const delta = e.deltaY > 0 ? -0.1 : 0.1; // Изменение масштаба
-                scale += delta;
-                scale = Math.max(0.1, Math.min(scale, 5)); // Ограничиваем масштаб от 0.1 до 5
-                bgImage.setAttribute('transform', `scale(${scale})`); // Устанавливаем масштаб
-                bgImage.setAttribute('scale', scale);  // Сохраняем значение масштаба
+            function updateBgTransform() {
+                bgGroup.setAttribute('transform', `translate(${bgTranslate.x},${bgTranslate.y}) scale(${bgScale})`);
             }
-        });
 
-        let isDraggingBg = false;
-        let startXBg, startYBg;
+            canvas.addEventListener('wheel', (e) => {
+                if (!isControllingBackground) return;
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                bgScale = Math.max(0.1, Math.min(5, bgScale + delta));
+                updateBgTransform();
+            });
 
-        canvas.addEventListener('mousedown', (e) => {
-            if (isControllingBackground && bgImage) {
+            canvas.addEventListener('mousedown', (e) => {
+                if (!isControllingBackground) return;
                 isDraggingBg = true;
-                startXBg = e.clientX - parseFloat(bgImage.getAttribute('x') || 0);
-                startYBg = e.clientY - parseFloat(bgImage.getAttribute('y') || 0);
-                canvas.style.cursor = 'grabbing'; // Меняем курсор
-            }
-        });
+                startXBg = e.clientX - bgTranslate.x;
+                startYBg = e.clientY - bgTranslate.y;
+                canvas.style.cursor = 'grabbing';
+            });
 
-        canvas.addEventListener('mouseup', () => {
-            isDraggingBg = false;
-            canvas.style.cursor = 'default';
-        });
+            canvas.addEventListener('mouseup', () => {
+                isDraggingBg = false;
+                if (isControllingBackground) canvas.style.cursor = 'grab';
+            });
 
-        canvas.addEventListener('mousemove', (e) => {
-            if (isControllingBackground && isDraggingBg && bgImage) {
-                const newX = e.clientX - startXBg;
-                const newY = e.clientY - startYBg;
-
-                bgImage.setAttribute('x', newX);
-                bgImage.setAttribute('y', newY);
-            }
-        });
-
-
-           toggleBgControlButton.addEventListener('click', () => {
-            isControllingBackground = !isControllingBackground;
-            toggleBgControlButton.classList.toggle('active', isControllingBackground);
-
-            if (isControllingBackground) {
-                canvas.style.cursor = 'grab'; // Меняем курсор
-            } else {
-                canvas.style.cursor = 'default';
-            }
-           });
-
-            // Клик по SVG для добавления точек
-
-            canvas.addEventListener('click', e => {
-                if (!isControllingBackground) { // Добавляем точки, только если не управляем фоном
-                  const rect = canvas.getBoundingClientRect();
-                  const x = e.clientX - rect.left;
-                  const y = e.clientY - rect.top;
-
-                  addPoint(x, y);
+            canvas.addEventListener('mousemove', (e) => {
+                if (isControllingBackground && isDraggingBg) {
+                    bgTranslate.x = e.clientX - startXBg;
+                    bgTranslate.y = e.clientY - startYBg;
+                    updateBgTransform();
                 }
             });
 
-            // Выбор режима
+            // Точки по клику
+            canvas.addEventListener('click', e => {
+                if (isControllingBackground) return;
+                const rect = canvas.getBoundingClientRect();
+                addPoint(e.clientX - rect.left, e.clientY - rect.top);
+            });
+
+            // Режим
             modeButtons.forEach(button => {
-                button.addEventListener('click', e => {
-                    currentMode = e.target.dataset.mode;
+                button.addEventListener('click', () => {
+                    currentMode = button.dataset.mode;
                     modeButtons.forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
+                    button.classList.add('active');
                 });
             });
 
-            // Инициализация: выбор режима M и начальная отрисовка
+            // Init
             document.querySelector('[data-mode="M"]').classList.add('active');
-            addPoint(50, 50); // Начальная точка для примера
+            addPoint(50, 50);
         })();
-
     </script>
+
+    <style>
+        .hidden { display: none; }
+        .control-point { fill: red; cursor: pointer; }
+        .control-point.control { fill: orange; }
+        .helper-line { stroke: gray; stroke-dasharray: 4; }
+        .mode-button.active { background: #ddd; }
+        #canvas { border: 1px solid #ccc; }
+    </style>
 </body>
+
 </html>
