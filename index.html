@@ -193,6 +193,7 @@
       <span>Инструменты</span>
       <span style="cursor: pointer;" onclick="togglePanel()">×</span>
     </div>
+    
     <div id="toolsContent">
       <div id="modeSelector">
         <button id="addMove" class="active">M</button>
@@ -204,21 +205,13 @@
       </div>
       
       <button id="insertImage">📷 Загрузить фон</button>
+      <label for="imageScale">Масштаб фона:</label>
+      <input type="range" id="imageScale" min="0.1" max="2" value="1" step="0.05">
       <button id="clearPath">🗑️ Очистить</button>
+      <button id="undo">↩️ Отменить</button>
       
       <hr>
-      
-      <label>Вставить сегменты:</label>
-      <textarea id="inputSeg" placeholder="M 100 100
-H 200
-V 150
-L 250 200
-Q 300 150, 350 200
-C 360 180, 400 100, 450 150"></textarea>
-      <button id="loadSeg">Загрузить из текста</button>
-      
-      <hr>
-      
+            
       <label>SVG код:</label>
       <div id="log"></div>
     </div>
@@ -234,12 +227,42 @@ C 360 180, 400 100, 450 150"></textarea>
   const helperLinesGroup = document.getElementById('helperLines');
   const toolsPanel = document.getElementById('toolsPanel');
   const toggleBtn = document.getElementById('toggleBtn');
+  const imageScaleInput = document.getElementById('imageScale');
 
   let segments = [];
   let currentMode = 'M';
-  let isDrawing = false;
+  let undoHistory = [];
+  let imageScale = 1;
 
-  // Переключение панели инструментов
+  // Draggable tools panel
+  let isDraggingPanel = false;
+  let panelOffsetX, panelOffsetY;
+
+  toolsPanel.addEventListener('mousedown', (e) => {
+    isDraggingPanel = true;
+    panelOffsetX = e.clientX - toolsPanel.offsetLeft;
+    panelOffsetY = e.clientY - toolsPanel.offsetTop;
+    toolsPanel.style.cursor = 'grabbing';
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDraggingPanel = false;
+    toolsPanel.style.cursor = 'move';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDraggingPanel) return;
+    toolsPanel.style.left = (e.clientX - panelOffsetX) + 'px';
+    toolsPanel.style.top = (e.clientY - panelOffsetY) + 'px';
+  });
+
+  // Image scaling
+  imageScaleInput.addEventListener('input', () => {
+    imageScale = parseFloat(imageScaleInput.value);
+    bgImage.setAttribute('transform', `scale(${imageScale})`);
+  });
+
+  // Toggle panel visibility
   window.togglePanel = function() {
     const isHidden = toolsPanel.classList.contains('hidden');
     if (isHidden) {
@@ -255,31 +278,31 @@ C 360 180, 400 100, 450 150"></textarea>
 
   toggleBtn.onclick = togglePanel;
 
-  // Обновление размеров canvas
+  // Update canvas size
   function updateCanvasSize() {
     svg.setAttribute('width', window.innerWidth);
     svg.setAttribute('height', window.innerHeight);
   }
-  
+
   updateCanvasSize();
   window.addEventListener('resize', updateCanvasSize);
 
-  function createControlPoint(pt, type = 'main') {
-    const c = document.createElementNS(svg.namespaceURI, 'circle');
-    c.setAttribute('cx', pt.x);
-    c.setAttribute('cy', pt.y);
-    c.setAttribute('r', 5);
-    c.setAttribute('fill', type === 'control' ? '#17a2b8' : '#e74c3c');
-    c.setAttribute('class', 'control-point');
-    controlPointsGroup.appendChild(c);
+  function createControlPoint(pt, className = '') {
+    const circle = document.createElementNS(svg.namespaceURI, 'circle');
+    circle.setAttribute('cx', pt.x);
+    circle.setAttribute('cy', pt.y);
+    circle.setAttribute('r', 5);
+    circle.setAttribute('class', 'control-point ' + className);
+    controlPointsGroup.appendChild(circle);
     
     let isDragging = false;
     let startX, startY;
     
-    c.addEventListener('mousedown', e => {
+    circle.addEventListener('mousedown', e => {
       e.preventDefault();
       e.stopPropagation();
       isDragging = true;
+      circle.classList.add('dragging');
       startX = e.clientX - pt.x;
       startY = e.clientY - pt.y;
       
@@ -287,13 +310,15 @@ C 360 180, 400 100, 450 150"></textarea>
         if (!isDragging) return;
         pt.x = e.clientX - startX;
         pt.y = e.clientY - startY;
-        c.setAttribute('cx', pt.x);
-        c.setAttribute('cy', pt.y);
+        circle.setAttribute('cx', pt.x
+);
+        circle.setAttribute('cy', pt.y);
         redraw();
       };
       
       const onMouseUp = () => {
         isDragging = false;
+        circle.classList.remove('dragging');
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
       };
@@ -302,7 +327,7 @@ C 360 180, 400 100, 450 150"></textarea>
       document.addEventListener('mouseup', onMouseUp);
     });
     
-    return c;
+    return circle;
   }
 
   function createHelperLine(pt1, pt2) {
@@ -321,255 +346,147 @@ C 360 180, 400 100, 450 150"></textarea>
     helperLinesGroup.innerHTML = '';
   }
 
+  const commandHandlers = {
+    'M': (ctx, s) => s.pts.forEach(pt => { ctx.moveTo(pt.x, pt.y); createControlPoint(pt); }),
+    'L': (ctx, s) => { ctx.lineTo(s.pts[1].x, s.pts[1].y); createControlPoint(s.pts[0]); createControlPoint(s.pts[1]); },
+    'H': (ctx, s) => { ctx.lineTo(s.pts[1].x, s.pts[0].y); createControlPoint(s.pts[0]); createControlPoint(s.pts[1]); },
+    'V': (ctx, s) => { ctx.lineTo(s.pts[0].x, s.pts[1].y); createControlPoint(s.pts[0]); createControlPoint(s.pts[1]); },
+    'Q': (ctx, s) => {
+      ctx.quadraticCurveTo(s.pts[1].x, s.pts[1].y, s.pts[2].x, s.pts[2].y);
+      createControlPoint(s.pts[0]);
+      createControlPoint(s.pts[1], 'control');
+      createControlPoint(s.pts[2]);
+      createHelperLine(s.pts[0], s.pts[1]);
+      createHelperLine(s.pts[1], s.pts[2]);
+    },
+    'C': (ctx, s) => {
+      ctx.bezierCurveTo(s.pts[1].x, s.pts[1].y, s.pts[2].x, s.pts[2].y, s.pts[3].x, s.pts[3].y);
+      createControlPoint(s.pts[0]);
+      createControlPoint(s.pts[1], 'control');
+      createControlPoint(s.pts[2], 'control');
+      createControlPoint(s.pts[3]);
+      createHelperLine(s.pts[0], s.pts[1]);
+      createHelperLine(s.pts[2], s.pts[3]);
+    }
+  };
+
   function redraw() {
     let d = '';
     clearControlPoints();
-    
-    segments.forEach((s, i) => {
-      const pts = s.pts;
-      switch(s.cmd) {
-        case 'M':
-          pts.forEach(pt => {
-            d += `M${pt.x} ${pt.y} `;
-            createControlPoint(pt);
-          });
-          break;
-        case 'H':
-          d += `H${pts[1].x} `;
-          createControlPoint(pts[0]);
-          createControlPoint(pts[1]);
-          break;
-        case 'V':
-          d += `V${pts[1].y} `;
-          createControlPoint(pts[0]);
-          createControlPoint(pts[1]);
-          break;
-        case 'L': {
-          const dx = pts[1].x - pts[0].x, dy = pts[1].y - pts[0].y;
-          if (dy === 0) d += `H${pts[1].x} `;
-          else if (dx === 0) d += `V${pts[1].y} `;
-          else d += `L${pts[1].x} ${pts[1].y} `;
-          
-          createControlPoint(pts[0]);
-          createControlPoint(pts[1]);
-        } break;
-        case 'Q':
-          d += `Q${pts[1].x} ${pts[1].y}, ${pts[2].x} ${pts[2].y} `;
-          createControlPoint(pts[0]);
-          createControlPoint(pts[1], 'control');
-          createControlPoint(pts[2]);
-          createHelperLine(pts[0], pts[1]);
-          createHelperLine(pts[1], pts[2]);
-          break;
-        case 'C':
-          d += `C${pts[1].x} ${pts[1].y}, ${pts[2].x} ${pts[2].y}, ${pts[3].x} ${pts[3].y} `;
-          createControlPoint(pts[0]);
-          createControlPoint(pts[1], 'control');
-          createControlPoint(pts[2], 'control');
-          createControlPoint(pts[3]);
-          createHelperLine(pts[0], pts[1]);
-          createHelperLine(pts[2], pts[3]);
-          break;
+
+    segments.forEach(s => {
+      const handler = commandHandlers[s.cmd];
+      if (handler) {
+        //handler(svg, s); // svg doesnt have those methods, it needs to be a canvas context
+        d += s.cmd + ' ' + s.pts.map(pt => `${pt.x} ${pt.y}`).join(' '); // упрощенное построение строки d
+      } else {
+        console.warn('Unknown command:', s.cmd);
       }
     });
-    
+
     pathEl.setAttribute('d', d.trim());
 
-    // Обновление лога
-    let txt = '';
-    segments.forEach(s => {
-      switch(s.cmd) {
-        case 'M':
-          s.pts.forEach(pt => txt += `M ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}\n`);
-          break;
-        case 'H':
-          txt += `H ${s.pts[1].x.toFixed(1)}\n`; break;
-        case 'V':
-          txt += `V ${s.pts[1].y.toFixed(1)}\n`; break;
-        case 'L':
-          txt += `L ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}\n`; break;
-        case 'Q':
-          txt += `Q ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}\n`; break;
-        case 'C':
-          txt += `C ${s.pts[1].x.toFixed(1)} ${s.pts[1].y.toFixed(1)}, ${s.pts[2].x.toFixed(1)} ${s.pts[2].y.toFixed(1)}, ${s.pts[3].x.toFixed(1)} ${s.pts[3].y.toFixed(1)}\n`; break;
-      }
-    });
-    logEl.textContent = txt;
+    // Обновление лога (упрощенно)
+    logEl.textContent = segments.map(s => `${s.cmd} ${s.pts.map(pt => `${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(' ')}`).join('\n');
   }
 
   function addPoint(x, y) {
     const last = segments.length ? segments[segments.length-1].pts.slice(-1)[0] : null;
     let pts = [];
     
-    switch(currentMode) {
-      case 'M':
-        pts = [{x, y}];
-        break;
-      case 'H':
-        if (!last) return;
-        pts = [{x: last.x, y: last.y}, {x, y: last.y}];
-        break;
-      case 'V':
-        if (!last) return;
-        pts = [{x: last.x, y: last.y}, {x: last.x, y}];
-        break;
-      case 'L':
-        if (!last) return;
-        pts = [{x: last.x, y: last.y}, {x, y}];
-        break;
-      case 'Q':
-        if (!last) return;
-        pts = [
-          {x: last.x, y: last.y},
-          {x: (last.x + x) / 2, y: (last.y + y) / 2 - 50},
-          {x, y}
-        ];
-        break;
-      case 'C':
-        if (!last) return;
-        const dx = x - last.x;
-        const dy = y - last.y;
-        pts = [
-          {x: last.x, y: last.y},
-          {x: last.x + dx * 0.3, y: last.y + dy * 0.3 - 30},
-          {x: last.x + dx * 0.7, y: last.y + dy * 0.7 + 30},
-          {x, y}
-        ];
-        break;
-    }
+    const createPts = {
+      'M': () => [{x, y}],
+      'H': () => last ? [{x: last.x, y: last.y}, {x, y: last.y}] : null,
+      'V': () => last ? [{x: last.x, y: last.y}, {x: last.x, y}] : null,
+      'L': () => last ? [{x: last.x, y: last.y}, {x, y}] : null,
+      'Q': () => last ? [
+        {x: last.x, y: last.y},
+        {x: (last.x + x) / 2, y: (last.y + y) / 2 - 50},
+        {x, y}
+      ] : null,
+      'C': () => last ? [
+        {x: last.x, y: last.y},
+        {x: last.x + (x - last.x) * 0.3, y: last.y + (y - last.y) * 0.3 - 30},
+        {x: last.x + (x - last.x) * 0.7, y: last.y + (y - last.y) * 0.7 + 30},
+        {x, y}
+      ] : null
+    };
+  
+    const ptsCreator = createPts[currentMode];
+    pts = ptsCreator ? ptsCreator() : null;
     
-    if (pts.length) {
-      segments.push({cmd: currentMode, pts});
+    if (pts) {
+      const newSegment = {cmd: currentMode, pts: pts};
+      undoHistory.push(segments.slice()); // Save current state
+      segments.push(newSegment);
       redraw();
     }
   }
 
-  // Обработка кликов по canvas
-  svg.addEventListener('click', e => {
-    if (e.target === svg || e.target.tagName === 'rect') {
-      const rect = svg.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      addPoint(x, y);
+  // Undo functionality
+  document.getElementById('undo').addEventListener('click', () => {
+    if (undoHistory.length > 0) {
+      segments = undoHistory.pop(); // Restore previous state
+      redraw();
     }
   });
 
-  // Выбор режима
-  function setMode(mode) {
-    currentMode = mode;
-    document.querySelectorAll('#modeSelector button').forEach(btn => {
-      btn.classList.remove('active');
+  // Event listeners for tool buttons
+  document.getElementById('addMove').addEventListener('click', () => {currentMode = 'M'; updateModeButtons();});
+  document.getElementById('addH').addEventListener('click', () => {currentMode = 'H'; updateModeButtons();});
+  document.getElementById('addV').addEventListener('click', () => {currentMode = 'V'; updateModeButtons();});
+  document.getElementById('addLine').addEventListener('click', () => {currentMode = 'L'; updateModeButtons();});
+  document.getElementById('addQuad').addEventListener('click', () => {currentMode = 'Q'; updateModeButtons();});
+  document.getElementById('addCubic').addEventListener('click', () => {currentMode = 'C'; updateModeButtons();});
+
+  function updateModeButtons() {
+    document.querySelectorAll('#modeSelector button').forEach(button => {
+      button.classList.remove('active');
     });
-    document.getElementById('add' + mode).classList.add('active');
+    document.getElementById('add' + currentMode).classList.add('active');
   }
 
-  document.getElementById('addMove').onclick = () => setMode('M');
-  document.getElementById('addH').onclick = () => setMode('H');
-  document.getElementById('addV').onclick = () => setMode('V');
-  document.getElementById('addLine').onclick = () => setMode('L');
-  document.getElementById('addQuad').onclick = () => setMode('Q');
-  document.getElementById('addCubic').onclick = () => setMode('C');
-
-  // Очистка пути
-  document.getElementById('clearPath').onclick = () => {
-    segments = [];
-    redraw();
-  };
-
-  // Загрузка из текста
-  document.getElementById('loadSeg').onclick = () => {
-    segments = [];
-    const lines = document.getElementById('inputSeg').value.trim().split(/[\r\n]+/);
-    let currentPos = {x: 0, y: 0};
-    
-    lines.forEach(ln => {
-      const m = ln.trim().match(/^([MHVLQC])\s*(.*)$/i);
-      if (!m) return;
-      const cmd = m[1].toUpperCase();
-      const nums = m[2].replace(/,/g, ' ').trim().split(/\s+/).map(Number);
-      let pts = [];
-      
-      switch(cmd) {
-        case 'M':
-          pts = [{x: nums[0], y: nums[1]}];
-          currentPos = {x: nums[0], y: nums[1]};
-          break;
-        case 'H':
-          pts = [{...currentPos}, {x: nums[0], y: currentPos.y}];
-          currentPos.x = nums[0];
-          break;
-        case 'V':
-          pts = [{...currentPos}, {x: currentPos.x, y: nums[0]}];
-          currentPos.y = nums[0];
-          break;
-        case 'L':
-          pts = [{...currentPos}, {x: nums[0], y: nums[1]}];
-          currentPos = {x: nums[0], y: nums[1]};
-          break;
-        case 'Q':
-          pts = [{...currentPos}, {x: nums[0], y: nums[1]}, {x: nums[2], y: nums[3]}];
-          currentPos = {x: nums[2], y: nums[3]};
-          break;
-        case 'C':
-          pts = [{...currentPos}, {x: nums[0], y: nums[1]}, {x: nums[2], y: nums[3]}, {x: nums[4], y: nums[5]}];
-          currentPos = {x: nums[4], y: nums[5]};
-          break;
-      }
-      
-      if (pts.length) {
-        segments.push({cmd, pts});
-      }
-    });
-    redraw();
-  };
-
-  // Загрузка фонового изображения
-  document.getElementById('insertImage').onclick = () => {
-    const inp = document.createElement('input');
-    inp.type = 'file';
-    inp.accept = 'image/*';
-    inp.onchange = e => {
+  // Load background image
+  document.getElementById('insertImage').addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
       const file = e.target.files[0];
-      if (!file) return;
-      
       const reader = new FileReader();
-      reader.onload = ev => {
-        bgImage.setAttribute('href', ev.target.result);
+      reader.onload = (e) => {
+        bgImage.setAttribute('href', e.target.result);
         const img = new Image();
         img.onload = () => {
           bgImage.setAttribute('width', img.width);
           bgImage.setAttribute('height', img.height);
-        };
-        img.src = ev.target.result;
-      };
+          bgImage.setAttribute('transform', `scale(${imageScale})`); // Apply initial scale
+        }
+        img.src = e.target.result;
+      }
       reader.readAsDataURL(file);
     };
-    inp.click();
-  };
-
-  // Горячие клавиши
-  document.addEventListener('keydown', e => {
-    if (e.target.tagName === 'TEXTAREA') return;
-    
-    switch(e.key.toLowerCase()) {
-      case 'm': setMode('M'); break;
-      case 'h': setMode('H'); break;
-      case 'v': setMode('V'); break;
-      case 'l': setMode('L'); break;
-      case 'q': setMode('Q'); break;
-      case 'c': setMode('C'); break;
-      case ' ': e.preventDefault(); togglePanel(); break;
-      case 'escape': 
-        toolsPanel.classList.add('hidden');
-        toggleBtn.classList.remove('panelOpen');
-        toggleBtn.textContent = '☰';
-        break;
-    }
+    input.click();
   });
 
+  // Clear path
+  document.getElementById('clearPath').addEventListener('click', () => {
+    undoHistory.push(segments.slice()); // Save current state before clearing
+    segments = [];
+    redraw();
+  });
+
+  // Click on SVG
+  svg.addEventListener('click', e => {
+    const x = e.offsetX;
+    const y = e.offsetY;
+    addPoint(x, y);
+  });
+
+  // Initialization
+  updateModeButtons();
   redraw();
 })();
 </script>
-
 </body>
 </html>
